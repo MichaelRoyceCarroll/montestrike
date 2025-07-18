@@ -227,7 +227,11 @@ Typical performance on RTX 4060:
 - Python 3.8+ (for Python bindings)
 - pybind11 (automatically downloaded)
 
-Build and test system is Win 11 (WSL2/Ubuntu 22.04). Intel(R) Core(TM) Ultra 9 185H   2.30 GHz, 32GB RAM. NVIDIA GeForce RTX 4060 8GB.
+Build and test system:
+  - Win 11 (WSL2/Ubuntu 22.04).
+  - CUDA SDK 12.6.
+  - Intel(R) Core(TM) Ultra 9 185H, 32GB RAM. NVIDIA GeForce RTX 4060 8GB.
+  - Python 3.10.x
 
 ### Build Options
 
