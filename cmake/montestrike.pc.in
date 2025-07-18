@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: MonteStrike
+Description: Monte Carlo US Option Probability of Touch Estimator
+Version: @PROJECT_VERSION@
+Requires: 
+Libs: -L${libdir} -lmontestrike
+Libs.private: -lcudart -lcurand
+Cflags: -I${includedir}
