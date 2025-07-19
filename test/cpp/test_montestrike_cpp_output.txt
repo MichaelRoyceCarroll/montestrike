@@ -1,0 +1,51 @@
+🚀 MonteStrike C++ Test Suite
+=============================
+📦 MonteStrike Version: 0.1.0-Release
+⚡ CUDA Version: 12.9
+📅 Build Date: Jul 18 2025 17:07:07
+
+🎯 Found 1 compatible CUDA device(s)
+🏆 Using device: NVIDIA GeForce RTX 4060 Laptop GPU (CC 8.9)
+
+🧪 Running Parameter Validation...
+✅ Parameter Validation PASSED
+
+🧪 Running Device Analyzer...
+✅ Device Analyzer PASSED
+
+🧪 Running Basic Monte Carlo Calculation...
+   PoT: 0.40568
+   Paths touched: 20284/50000
+   Throughput: 2.70213e+06 paths/sec
+✅ Basic Monte Carlo Calculation PASSED (18.6254 ms)
+
+🧪 Running Different Path Counts...
+   50000 paths: PoT=0.55184, time=4.67557ms
+   100000 paths: PoT=0.5508, time=8.10066ms
+   500000 paths: PoT=0.550156, time=36.6715ms
+✅ Different Path Counts PASSED
+
+🧪 Running Antithetic Variates...
+   Normal: 0.60177
+   Antithetic: 0.60169
+   Difference: 7.99894e-05
+✅ Antithetic Variates PASSED
+
+🧪 Running Edge Cases...
+   At-the-money PoT: 1
+   Short expiration PoT: 0
+✅ Edge Cases PASSED
+
+
+==================================================
+📊 TEST SUMMARY
+Total tests: 32
+Passed: 32
+Failed: 0
+🎉 All tests passed!
+==================================================
+
+📊 SUITE SUMMARY
+Test suites passed: 6
+Test suites failed: 0
+🎉 ALL TESTS PASSED! 🎉

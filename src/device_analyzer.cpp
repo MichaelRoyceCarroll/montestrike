@@ -1,5 +1,6 @@
 #include "montestrike/device_analyzer.hpp"
 #include <cuda_runtime.h>
+#include <curand_kernel.h>
 #include <vector>
 #include <algorithm>
 #include <sstream>

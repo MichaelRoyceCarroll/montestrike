@@ -14,7 +14,7 @@ extern "C" {
                                         int num_paths, bool use_antithetic_variates, bool* d_touch_results, 
                                         float* d_final_prices, int block_size);
     cudaError_t launch_reduce_kernel(bool* d_touch_results, int num_paths, unsigned long long* d_touch_count, int block_size);
-    ErrorCode allocate_simulation_memory(uint32_t num_paths, void** buffers_handle);
+    montestrike::ErrorCode allocate_simulation_memory(uint32_t num_paths, void** buffers_handle);
     void free_simulation_memory();
     uint64_t estimate_memory_requirements(uint32_t num_paths);
 }
@@ -51,7 +51,7 @@ MonteCarloPoT::Results::Results()
 // Implementation class
 class MonteCarloPoT::Impl {
 public:
-    Impl() : initialized_(false), device_analyzer_() {}
+    Impl() : device_analyzer_(), initialized_(false) {}
     
     ~Impl() {
         shutdown();
@@ -242,7 +242,7 @@ public:
             results.metrics.kernel_time_ms = kernel_time;
             results.metrics.memory_transfer_time_ms = total_time - kernel_time;
             results.metrics.throughput_paths_per_sec = (params.num_paths * 1000.0) / total_time;
-            results.metrics.memory_used_bytes = estimate_memory_requirements(params.num_paths);
+            results.metrics.memory_used_bytes = ::estimate_memory_requirements(params.num_paths);
             
             // Get device info
             results.device_used = device_analyzer_.get_device_info(current_device_);

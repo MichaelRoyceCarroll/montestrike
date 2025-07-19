@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(MonteStrike VERSION 1.0.0 LANGUAGES CXX CUDA)
+project(MonteStrike VERSION 0.1.0 LANGUAGES CXX CUDA)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -95,6 +95,10 @@ target_link_libraries(montestrike
     CUDA::curand
 )
 
+# Add to export set
+set_target_properties(montestrike PROPERTIES EXPORT_NAME montestrike)
+add_library(MonteStrike::montestrike ALIAS montestrike)
+
 # Set library properties
 set_target_properties(montestrike PROPERTIES
     VERSION ${PROJECT_VERSION}
@@ -113,6 +117,7 @@ endif()
 
 # Installation rules
 install(TARGETS montestrike
+    EXPORT MonteStrikeTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin

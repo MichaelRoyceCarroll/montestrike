@@ -1,10 +1,6 @@
 #include "test_assertions.hpp"
 #include "montestrike/montestrike.hpp"
 #include <chrono>
-#include <fstream>
-#include <nlohmann/json.hpp>
-
-using json = nlohmann::json;
 
 namespace montestrike_test {
 

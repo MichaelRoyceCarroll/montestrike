@@ -182,6 +182,8 @@ See the `examples/` directory for complete usage examples:
 - `basic_usage.cpp` / `basic_usage.py` - Simple probability calculation
 - `performance_benchmark.cpp` - Performance testing across path counts
 
+Example output from the basic usage application can be found in [`examples/basic_usage_cpp_output.txt`](examples/basic_usage_cpp_output.txt). This provides a sample run with interpretations of the results.
+
 ## Testing
 
 ### Generate Test Data
@@ -193,6 +195,8 @@ python test/generate_test_data.py --symbol IWM --min-days 4 --max-days 10
 # Generate U put option test data (10-30 days)  
 python test/generate_test_data.py --symbol U --min-days 10 --max-days 30 --option-type put
 ```
+
+Sample output from the C++ tests can be found in [`test/cpp/test_montestrike_cpp_output.txt`](test/cpp/test_montestrike_cpp_output.txt). This demonstrates successful execution and validation of the core calculations.
 
 ### Run Tests
 

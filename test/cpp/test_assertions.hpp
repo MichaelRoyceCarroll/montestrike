@@ -126,7 +126,7 @@ inline void print_test_result(const std::string& test_name, bool passed, double 
 }
 
 inline void print_test_summary() {
-    std::cout << "\n" << "=" * 50 << std::endl;
+    std::cout << "\n" << std::string(50, '=') << std::endl;
     std::cout << "📊 TEST SUMMARY" << std::endl;
     std::cout << "Total tests: " << total_tests << std::endl;
     std::cout << "Passed: " << passed_tests << std::endl;
@@ -137,7 +137,7 @@ inline void print_test_summary() {
     } else {
         std::cout << "💥 " << failed_tests << " test(s) failed!" << std::endl;
     }
-    std::cout << "=" * 50 << std::endl;
+    std::cout << std::string(50, '=') << std::endl;
 }
 
 } // namespace montestrike_test

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <ostream>
 
 namespace montestrike {
 
@@ -54,5 +55,23 @@ struct ValidationResult {
 };
 
 typedef void (*ProgressCallback)(float percentage, void* user_data);
+
+// Utility functions for ErrorCode
+inline std::ostream& operator<<(std::ostream& os, ErrorCode code) {
+    switch (code) {
+        case ErrorCode::SUCCESS: return os << "SUCCESS";
+        case ErrorCode::INVALID_PARAMETERS: return os << "INVALID_PARAMETERS";
+        case ErrorCode::CUDA_ERROR: return os << "CUDA_ERROR";
+        case ErrorCode::MEMORY_ALLOCATION_FAILED: return os << "MEMORY_ALLOCATION_FAILED";
+        case ErrorCode::NO_CUDA_DEVICE: return os << "NO_CUDA_DEVICE";
+        case ErrorCode::INCOMPATIBLE_DEVICE: return os << "INCOMPATIBLE_DEVICE";
+        case ErrorCode::KERNEL_LAUNCH_FAILED: return os << "KERNEL_LAUNCH_FAILED";
+        case ErrorCode::MEMORY_COPY_FAILED: return os << "MEMORY_COPY_FAILED";
+        case ErrorCode::DEVICE_SELECTION_FAILED: return os << "DEVICE_SELECTION_FAILED";
+        case ErrorCode::COMPUTATION_TIMEOUT: return os << "COMPUTATION_TIMEOUT";
+        case ErrorCode::UNKNOWN_ERROR: return os << "UNKNOWN_ERROR";
+        default: return os << "UNKNOWN_ERROR_CODE";
+    }
+}
 
 } // namespace montestrike
