@@ -210,14 +210,14 @@ python -m pytest test/python/
 
 ## Performance Benchmarks
 
-Typical performance on RTX 4060:
+Measured performance on RTX 4060 Laptop GPU:
 
 | Paths | Time (ms) | Throughput (M paths/s) |
 |-------|-----------|------------------------|
-| 100K  | 15        | 6.7                    |
-| 500K  | 45        | 11.1                   |
-| 1M    | 85        | 11.8                   |
-| 2M    | 165       | 12.1                   |
+| 50K   | 4.7       | 2.7                    |
+| 100K  | 8.1       | ~12.3                  |
+| 500K  | 36.7      | ~13.6                  |
+| 1M    | 51.6      | 19.4                   |
 
 *Results may vary based on GPU model, driver version, and system configuration.*
 
@@ -281,7 +281,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Attribution Request
 
-While the MIT license only requires copyright notice retention, attribution in project documentation or credits is appreciated if you find this library useful in your work.
+While the MIT license only requires copyright notice retention, **attribution** in project documentation or credits is appreciated if you find this library useful in your work.
 
 ## Support
 
@@ -294,7 +294,9 @@ While the MIT license only requires copyright notice retention, attribution in p
 
 - CUDA SDK team
 - This project uses [`yfinance`](https://github.com/ranaroussi/yfinance). Thanks to the yfinance team!
-- This project was architected and initially implemented with assistance from [Claude](https://claude.ai) (Anthropic) Sonnet4. 
+- This project was architected and initially implemented with assistance from [Claude](https://claude.ai) (Anthropic) Sonnet4.
+- _How to Make Money in Stocks: A Winning System in Good Times and Bad, Fourth Edition_ by William J. O'Neil
+- _Options as a Strategic Investment_ by Lawrence G. McMillan 
 
 ---
 
