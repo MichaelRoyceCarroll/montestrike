@@ -69,6 +69,19 @@ private:
         bool use_antithetic = false
     );
     
+    // Overloaded version with pre-allocated randoms
+    static uint32_t simulate_paths_simd_prealloc(
+        float current_price,
+        float strike_price,
+        float drift_term,
+        float vol_sqrt_dt,
+        uint32_t total_steps,
+        const std::vector<float>& pre_generated_randoms,
+        uint32_t& random_index,
+        uint32_t num_paths_batch,
+        bool use_antithetic = false
+    );
+    
     static void generate_normal_random_avx2(
         std::mt19937& rng,
         std::normal_distribution<float>& normal_dist,
@@ -253,78 +266,113 @@ void Avx2MonteCarloCalculator::worker_thread_avx2(WorkerData data) {
         uint64_t local_touched = 0;
         uint32_t total_paths = data.end_path - data.start_path;
         uint32_t paths_processed = 0;
+        uint32_t last_reported_paths = 0;
         
-        // Process paths in SIMD batches
+        // Keep simple RNG approach for better performance
+        
+        // Calculate optimal batch size logically
+        uint32_t optimal_batch_size = std::max(
+            SIMD_WIDTH * 16,                      // Minimum: 16 SIMD operations per batch
+            total_paths / 4                       // Distribute work into ~4 chunks per thread
+        );
+        // Round up to SIMD multiple
+        optimal_batch_size = ((optimal_batch_size + SIMD_WIDTH - 1) / SIMD_WIDTH) * SIMD_WIDTH;
+        
+        // Process paths in logical batches
         while (paths_processed < total_paths && !data.should_stop->load()) {
             uint32_t remaining_paths = total_paths - paths_processed;
-            uint32_t batch_size = std::min(remaining_paths, SIMD_WIDTH);
+            uint32_t batch_size = std::min(remaining_paths, optimal_batch_size);
             
-            // Use SIMD implementation if available, otherwise fallback to scalar
+            // Process logical batch with inner SIMD loops
+            uint32_t batch_touched = 0;
+            uint32_t batch_paths_processed = 0;
+            
+            // Inner loop: process SIMD_WIDTH paths at a time within logical batch
+            while (batch_paths_processed < batch_size) {
+                uint32_t simd_batch_size = std::min(batch_size - batch_paths_processed, SIMD_WIDTH);
+                
 #ifdef __AVX2__
-            uint32_t touched_in_batch = simulate_paths_simd(
-                data.current_price,
-                data.strike_price,
-                drift_term,
-                vol_sqrt_dt,
-                data.total_steps,
-                rng,
-                normal_dist,
-                batch_size,
-                false
-            );
+                uint32_t touched_in_simd_batch = simulate_paths_simd(
+                    data.current_price,
+                    data.strike_price,
+                    drift_term,
+                    vol_sqrt_dt,
+                    data.total_steps,
+                    rng,
+                    normal_dist,
+                    simd_batch_size,
+                    false
+                );
 #else
-            uint32_t touched_in_batch = simulate_paths_scalar_fallback(
-                data.current_price,
-                data.strike_price,
-                drift_term,
-                vol_sqrt_dt,
-                data.total_steps,
-                rng,
-                normal_dist,
-                batch_size,
-                false
-            );
+                uint32_t touched_in_simd_batch = simulate_paths_scalar_fallback(
+                    data.current_price,
+                    data.strike_price,
+                    drift_term,
+                    vol_sqrt_dt,
+                    data.total_steps,
+                    rng,
+                    normal_dist,
+                    simd_batch_size,
+                    false
+                );
 #endif
+                
+                batch_touched += touched_in_simd_batch;
+                batch_paths_processed += simd_batch_size;
+            }
             
-            local_touched += touched_in_batch;
+            local_touched += batch_touched;
             paths_processed += batch_size;
             
-            // Antithetic variates (process another batch with negative randoms)
+            // Antithetic variates (process another logical batch with negative randoms)
             if (data.use_antithetic_variates && paths_processed < total_paths) {
                 remaining_paths = total_paths - paths_processed;
-                batch_size = std::min(remaining_paths, SIMD_WIDTH);
+                batch_size = std::min(remaining_paths, optimal_batch_size);
                 
+                batch_touched = 0;
+                batch_paths_processed = 0;
+                
+                // Inner loop for antithetic variates
+                while (batch_paths_processed < batch_size) {
+                    uint32_t simd_batch_size = std::min(batch_size - batch_paths_processed, SIMD_WIDTH);
+                    
 #ifdef __AVX2__
-                touched_in_batch = simulate_paths_simd(
-                    data.current_price,
-                    data.strike_price,
-                    drift_term,
-                    vol_sqrt_dt,
-                    data.total_steps,
-                    rng,
-                    normal_dist,
-                    batch_size,
-                    true  // Use antithetic variates
-                );
+                    uint32_t touched_in_simd_batch = simulate_paths_simd(
+                        data.current_price,
+                        data.strike_price,
+                        drift_term,
+                        vol_sqrt_dt,
+                        data.total_steps,
+                        rng,
+                        normal_dist,
+                        simd_batch_size,
+                        true  // Use antithetic variates
+                    );
 #else
-                touched_in_batch = simulate_paths_scalar_fallback(
-                    data.current_price,
-                    data.strike_price,
-                    drift_term,
-                    vol_sqrt_dt,
-                    data.total_steps,
-                    rng,
-                    normal_dist,
-                    batch_size,
-                    true
-                );
+                    uint32_t touched_in_simd_batch = simulate_paths_scalar_fallback(
+                        data.current_price,
+                        data.strike_price,
+                        drift_term,
+                        vol_sqrt_dt,
+                        data.total_steps,
+                        rng,
+                        normal_dist,
+                        simd_batch_size,
+                        true
+                    );
 #endif
+                    
+                    batch_touched += touched_in_simd_batch;
+                    batch_paths_processed += simd_batch_size;
+                }
                 
-                local_touched += touched_in_batch;
+                local_touched += batch_touched;
                 paths_processed += batch_size;
             }
             
-            data.paths_completed->fetch_add(batch_size);
+            // Update paths completed once per batch (not per antithetic iteration)
+            data.paths_completed->fetch_add(paths_processed - last_reported_paths);
+            last_reported_paths = paths_processed;
         }
         
         // Update global counter
@@ -336,6 +384,42 @@ void Avx2MonteCarloCalculator::worker_thread_avx2(WorkerData data) {
 }
 
 #ifdef __AVX2__
+// Fast AVX2 exponential function with Intel SVML optimization
+static inline __m256 fast_exp_avx2(__m256 x) {
+    // Clamp input to reasonable range to avoid overflow
+    const __m256 max_input = _mm256_set1_ps(10.0f);
+    const __m256 min_input = _mm256_set1_ps(-10.0f);
+    x = _mm256_min_ps(_mm256_max_ps(x, min_input), max_input);
+    
+    // Use Intel SVML optimized exponential if available
+#if defined(__INTEL_COMPILER) || (defined(__GNUC__) && defined(__AVX2__) && defined(__FAST_MATH__))
+    // Intel SVML provides highly optimized _mm256_exp_ps
+    return _mm256_exp_ps(x);
+#else
+    // Fallback to polynomial approximation: exp(x) ≈ 1 + x + x²/2 + x³/6 + x⁴/24
+    const __m256 one = _mm256_set1_ps(1.0f);
+    const __m256 half = _mm256_set1_ps(0.5f);
+    const __m256 sixth = _mm256_set1_ps(1.0f/6.0f);
+    const __m256 twentyfourth = _mm256_set1_ps(1.0f/24.0f);
+    
+    __m256 x2 = _mm256_mul_ps(x, x);
+    __m256 x3 = _mm256_mul_ps(x2, x);
+    __m256 x4 = _mm256_mul_ps(x3, x);
+    
+    __m256 term1 = x;
+    __m256 term2 = _mm256_mul_ps(x2, half);
+    __m256 term3 = _mm256_mul_ps(x3, sixth);
+    __m256 term4 = _mm256_mul_ps(x4, twentyfourth);
+    
+    __m256 result = _mm256_add_ps(one, term1);
+    result = _mm256_add_ps(result, term2);
+    result = _mm256_add_ps(result, term3);
+    result = _mm256_add_ps(result, term4);
+    
+    return result;
+#endif
+}
+
 uint32_t Avx2MonteCarloCalculator::simulate_paths_simd(
     float current_price,
     float strike_price,
@@ -348,7 +432,6 @@ uint32_t Avx2MonteCarloCalculator::simulate_paths_simd(
     bool use_antithetic) {
     
     // Initialize SIMD vectors
-    alignas(32) float prices[SIMD_WIDTH];
     alignas(32) float randoms[SIMD_WIDTH];
     alignas(32) uint32_t touched_mask[SIMD_WIDTH];
     
@@ -375,13 +458,8 @@ uint32_t Avx2MonteCarloCalculator::simulate_paths_simd(
         // Calculate exp(drift_term + vol_sqrt_dt * random)
         __m256 exponent = _mm256_fmadd_ps(vol_vec, random_vec, drift_vec);
         
-        // Approximate exp using faster math (could use _mm256_exp_ps if available)
-        // For now, use scalar exp for accuracy
-        _mm256_store_ps(prices, exponent);
-        for (int i = 0; i < SIMD_WIDTH; i++) {
-            prices[i] = std::exp(prices[i]);
-        }
-        __m256 exp_vec = _mm256_load_ps(prices);
+        // Fast AVX2 exponential approximation for better performance
+        __m256 exp_vec = fast_exp_avx2(exponent);
         
         // Update prices: price *= exp(...)
         price_vec = _mm256_mul_ps(price_vec, exp_vec);
@@ -400,11 +478,94 @@ uint32_t Avx2MonteCarloCalculator::simulate_paths_simd(
         touched_vec = _mm256_or_ps(touched_vec, touch_check);
     }
     
-    // Count touched paths
-    _mm256_store_ps(prices, touched_vec);  // Reuse prices array for touched results
+    // Count touched paths using the dedicated touched_mask array
+    _mm256_store_ps(reinterpret_cast<float*>(touched_mask), touched_vec);
     uint32_t total_touched = 0;
     for (uint32_t i = 0; i < num_paths_batch; i++) {
-        if (reinterpret_cast<uint32_t*>(prices)[i] != 0) {
+        if (touched_mask[i] != 0) {
+            total_touched++;
+        }
+    }
+    
+    return total_touched;
+}
+
+// Optimized version using pre-allocated random numbers
+uint32_t Avx2MonteCarloCalculator::simulate_paths_simd_prealloc(
+    float current_price,
+    float strike_price,
+    float drift_term,
+    float vol_sqrt_dt,
+    uint32_t total_steps,
+    const std::vector<float>& pre_generated_randoms,
+    uint32_t& random_index,
+    uint32_t num_paths_batch,
+    bool use_antithetic) {
+    
+    // Initialize SIMD vectors
+    alignas(32) float randoms[SIMD_WIDTH];
+    alignas(32) uint32_t touched_mask[SIMD_WIDTH];
+    
+    // Initialize all prices to current_price
+    __m256 price_vec = _mm256_set1_ps(current_price);
+    __m256 strike_vec = _mm256_set1_ps(strike_price);
+    __m256 drift_vec = _mm256_set1_ps(drift_term);
+    __m256 vol_vec = _mm256_set1_ps(vol_sqrt_dt);
+    __m256 touched_vec = _mm256_setzero_ps();
+    
+    bool is_call = strike_price > current_price;
+    
+    // Check for immediate touch
+    if (std::abs(current_price - strike_price) < 1e-6f) {
+        random_index += total_steps * SIMD_WIDTH; // Advance index even if not using randoms
+        return num_paths_batch;
+    }
+    
+    // Simulate all paths in parallel
+    for (uint32_t step = 0; step < total_steps; step++) {
+        // Get pre-allocated random numbers
+        for (uint32_t i = 0; i < SIMD_WIDTH; i++) {
+            if (random_index < pre_generated_randoms.size()) {
+                float random_val = pre_generated_randoms[random_index++];
+                if (use_antithetic) {
+                    random_val = -random_val;
+                }
+                randoms[i] = random_val;
+            } else {
+                randoms[i] = 0.0f; // Fallback (shouldn't happen with proper pre-allocation)
+            }
+        }
+        
+        __m256 random_vec = _mm256_load_ps(randoms);
+        
+        // Calculate exp(drift_term + vol_sqrt_dt * random)
+        __m256 exponent = _mm256_fmadd_ps(vol_vec, random_vec, drift_vec);
+        
+        // Fast AVX2 exponential approximation for better performance
+        __m256 exp_vec = fast_exp_avx2(exponent);
+        
+        // Update prices: price *= exp(...)
+        price_vec = _mm256_mul_ps(price_vec, exp_vec);
+        
+        // Check for touch
+        __m256 touch_check;
+        if (is_call) {
+            // For calls: price >= strike
+            touch_check = _mm256_cmp_ps(price_vec, strike_vec, _CMP_GE_OQ);
+        } else {
+            // For puts: price <= strike
+            touch_check = _mm256_cmp_ps(price_vec, strike_vec, _CMP_LE_OQ);
+        }
+        
+        // Accumulate touches (once touched, always touched)
+        touched_vec = _mm256_or_ps(touched_vec, touch_check);
+    }
+    
+    // Count touched paths using the dedicated touched_mask array
+    _mm256_store_ps(reinterpret_cast<float*>(touched_mask), touched_vec);
+    uint32_t total_touched = 0;
+    for (uint32_t i = 0; i < num_paths_batch; i++) {
+        if (touched_mask[i] != 0) {
             total_touched++;
         }
     }
@@ -418,9 +579,6 @@ void Avx2MonteCarloCalculator::generate_normal_random_avx2(
     float* output,
     uint32_t count,
     bool use_antithetic) {
-    
-    static thread_local float cached_random = 0.0f;
-    static thread_local bool has_cached = false;
     
     for (uint32_t i = 0; i < count; i++) {
         float random_val = normal_dist(rng);

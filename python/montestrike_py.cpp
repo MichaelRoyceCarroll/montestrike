@@ -8,6 +8,13 @@ namespace py = pybind11;
 PYBIND11_MODULE(montestrike, m) {
     m.doc() = "MonteStrike: Monte Carlo US Option Probability of Touch Estimator";
     
+    // ComputeBackend enum
+    py::enum_<montestrike::ComputeBackend>(m, "ComputeBackend")
+        .value("CUDA", montestrike::ComputeBackend::CUDA)
+        .value("AVX2", montestrike::ComputeBackend::AVX2)
+        .value("CPU", montestrike::ComputeBackend::CPU)
+        .export_values();
+
     // Error codes enum
     py::enum_<montestrike::ErrorCode>(m, "ErrorCode")
         .value("SUCCESS", montestrike::ErrorCode::SUCCESS)
@@ -20,6 +27,9 @@ PYBIND11_MODULE(montestrike, m) {
         .value("MEMORY_COPY_FAILED", montestrike::ErrorCode::MEMORY_COPY_FAILED)
         .value("DEVICE_SELECTION_FAILED", montestrike::ErrorCode::DEVICE_SELECTION_FAILED)
         .value("COMPUTATION_TIMEOUT", montestrike::ErrorCode::COMPUTATION_TIMEOUT)
+        .value("BACKEND_NOT_AVAILABLE", montestrike::ErrorCode::BACKEND_NOT_AVAILABLE)
+        .value("AVX2_NOT_SUPPORTED", montestrike::ErrorCode::AVX2_NOT_SUPPORTED)
+        .value("CPU_THREAD_ERROR", montestrike::ErrorCode::CPU_THREAD_ERROR)
         .value("UNKNOWN_ERROR", montestrike::ErrorCode::UNKNOWN_ERROR)
         .export_values();
     
@@ -28,6 +38,7 @@ PYBIND11_MODULE(montestrike, m) {
         .def(py::init<>())
         .def_readwrite("device_id", &montestrike::DeviceInfo::device_id)
         .def_readwrite("name", &montestrike::DeviceInfo::name)
+        .def_readwrite("backend", &montestrike::DeviceInfo::backend)
         .def_readwrite("streaming_multiprocessors", &montestrike::DeviceInfo::streaming_multiprocessors)
         .def_readwrite("cores_per_sm", &montestrike::DeviceInfo::cores_per_sm)
         .def_readwrite("global_memory_bytes", &montestrike::DeviceInfo::global_memory_bytes)
@@ -36,6 +47,10 @@ PYBIND11_MODULE(montestrike, m) {
         .def_readwrite("compute_capability", &montestrike::DeviceInfo::compute_capability)
         .def_readwrite("is_compatible", &montestrike::DeviceInfo::is_compatible)
         .def_readwrite("available_memory_bytes", &montestrike::DeviceInfo::available_memory_bytes)
+        .def_readwrite("supports_avx2", &montestrike::DeviceInfo::supports_avx2)
+        .def_readwrite("supports_fma", &montestrike::DeviceInfo::supports_fma)
+        .def_readwrite("cpu_logical_cores", &montestrike::DeviceInfo::cpu_logical_cores)
+        .def_readwrite("cpu_physical_cores", &montestrike::DeviceInfo::cpu_physical_cores)
         .def("__repr__", [](const montestrike::DeviceInfo& info) {
             return "<DeviceInfo device_id=" + std::to_string(info.device_id) + 
                    " name='" + info.name + "' compatible=" + (info.is_compatible ? "True" : "False") + ">";
@@ -135,6 +150,12 @@ PYBIND11_MODULE(montestrike, m) {
                       "Use antithetic variates for variance reduction")
         .def_readwrite("random_seed", &montestrike::MonteCarloPoT::Parameters::random_seed,
                       "Random seed for reproducible results (0 = system time)")
+        .def_readwrite("backend", &montestrike::MonteCarloPoT::Parameters::backend,
+                      "Compute backend to use (CUDA, AVX2, or CPU)")
+        .def_readwrite("cpu_threads", &montestrike::MonteCarloPoT::Parameters::cpu_threads,
+                      "Number of CPU threads to use (0 = auto-detect)")
+        .def_readwrite("strict_backend_mode", &montestrike::MonteCarloPoT::Parameters::strict_backend_mode,
+                      "If true, fail if requested backend unavailable")
         .def_readwrite("progress_report_interval_ms", &montestrike::MonteCarloPoT::Parameters::progress_report_interval_ms,
                       "Progress callback interval in milliseconds")
         .def_readwrite("device_id", &montestrike::MonteCarloPoT::Parameters::device_id,

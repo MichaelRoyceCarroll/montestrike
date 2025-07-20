@@ -18,6 +18,8 @@ endif()
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" ON)
 option(BUILD_TESTS "Build test suite" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
+option(BUILD_CPU_BACKEND "Build CPU backend support" ON)
+option(BUILD_AVX2_BACKEND "Build AVX2 backend support" ON)
 
 # Find required packages
 find_package(CUDAToolkit REQUIRED)
@@ -52,6 +54,29 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# CPU feature detection and compilation flags
+if(BUILD_CPU_BACKEND OR BUILD_AVX2_BACKEND)
+    # Check for threading support
+    find_package(Threads REQUIRED)
+endif()
+
+if(BUILD_AVX2_BACKEND)
+    include(CheckCXXCompilerFlag)
+    
+    # Check if compiler supports AVX2
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+    check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA)
+    
+    if(NOT COMPILER_SUPPORTS_AVX2)
+        message(WARNING "Compiler does not support AVX2, disabling AVX2 backend")
+        set(BUILD_AVX2_BACKEND OFF)
+    endif()
+    
+    if(BUILD_AVX2_BACKEND)
+        message(STATUS "AVX2 backend enabled with flags: -mavx2 -mfma")
+    endif()
+endif()
+
 # CUDA-specific options
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --extended-lambda")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -72,6 +97,22 @@ set(MONTESTRIKE_SOURCES
     src/version.cpp
 )
 
+# CPU backend sources
+if(BUILD_CPU_BACKEND OR BUILD_AVX2_BACKEND)
+    list(APPEND MONTESTRIKE_SOURCES
+        src/aligned_memory.cpp
+        src/cpu_analyzer.cpp
+    )
+endif()
+
+if(BUILD_CPU_BACKEND)
+    list(APPEND MONTESTRIKE_SOURCES src/monte_carlo_cpu.cpp)
+endif()
+
+if(BUILD_AVX2_BACKEND)
+    list(APPEND MONTESTRIKE_SOURCES src/monte_carlo_avx2.cpp)
+endif()
+
 set(MONTESTRIKE_CUDA_SOURCES
     cuda/monte_carlo_kernel.cu
 )
@@ -82,6 +123,14 @@ set(MONTESTRIKE_HEADERS
     include/montestrike/types.hpp
     include/montestrike/version.hpp
 )
+
+# Add CPU backend headers
+if(BUILD_CPU_BACKEND OR BUILD_AVX2_BACKEND)
+    list(APPEND MONTESTRIKE_HEADERS
+        include/montestrike/aligned_memory.hpp
+        include/montestrike/cpu_analyzer.hpp
+    )
+endif()
 
 # Create main library
 add_library(montestrike SHARED 
@@ -94,6 +143,24 @@ target_link_libraries(montestrike
     CUDA::cudart 
     CUDA::curand
 )
+
+# Link CPU backend dependencies
+if(BUILD_CPU_BACKEND OR BUILD_AVX2_BACKEND)
+    target_link_libraries(montestrike Threads::Threads)
+endif()
+
+# Set AVX2 compilation flags for specific source files
+if(BUILD_AVX2_BACKEND)
+    set_source_files_properties(src/monte_carlo_avx2.cpp
+        PROPERTIES COMPILE_FLAGS "-mavx2 -mfma"
+    )
+    target_compile_definitions(montestrike PRIVATE BUILD_AVX2_BACKEND)
+endif()
+
+# Set CPU backend compile definitions
+if(BUILD_CPU_BACKEND)
+    target_compile_definitions(montestrike PRIVATE BUILD_CPU_BACKEND)
+endif()
 
 # Add to export set
 set_target_properties(montestrike PROPERTIES EXPORT_NAME montestrike)
@@ -253,6 +320,8 @@ message(STATUS "MonteStrike Configuration:")
 message(STATUS "  Version: ${PROJECT_VERSION}")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+message(STATUS "  CPU backend: ${BUILD_CPU_BACKEND}")
+message(STATUS "  AVX2 backend: ${BUILD_AVX2_BACKEND}")
 message(STATUS "  Python bindings: ${BUILD_PYTHON_BINDINGS}")
 message(STATUS "  Tests: ${BUILD_TESTS}")
 message(STATUS "  Examples: ${BUILD_EXAMPLES}")

@@ -6,6 +6,12 @@
 
 namespace montestrike {
 
+enum class ComputeBackend : int32_t {
+    CUDA = 0,      // Primary GPU backend
+    AVX2 = 1,      // Vectorized CPU backend  
+    CPU = 2        // Standard CPU backend
+};
+
 enum class ErrorCode : int32_t {
     SUCCESS = 0,
     INVALID_PARAMETERS = -1,
@@ -17,20 +23,30 @@ enum class ErrorCode : int32_t {
     MEMORY_COPY_FAILED = -7,
     DEVICE_SELECTION_FAILED = -8,
     COMPUTATION_TIMEOUT = -9,
+    BACKEND_NOT_AVAILABLE = -10,
+    AVX2_NOT_SUPPORTED = -11,
+    CPU_THREAD_ERROR = -12,
     UNKNOWN_ERROR = -100
 };
 
 struct DeviceInfo {
     int32_t device_id;
     std::string name;
-    uint32_t streaming_multiprocessors;
-    uint32_t cores_per_sm;
-    uint64_t global_memory_bytes;
-    uint32_t max_threads_per_block;
-    uint32_t max_threads_per_sm;
-    float compute_capability;
+    ComputeBackend backend;
+    uint32_t streaming_multiprocessors;    // GPU: SMs, CPU: logical cores
+    uint32_t cores_per_sm;                 // GPU: cores per SM, CPU: 1  
+    uint64_t global_memory_bytes;          // GPU: VRAM, CPU: system RAM
+    uint32_t max_threads_per_block;        // GPU: threads per block, CPU: threads per core
+    uint32_t max_threads_per_sm;           // GPU: threads per SM, CPU: total threads
+    float compute_capability;              // GPU: CC version, CPU: 0.0
     bool is_compatible;
     uint64_t available_memory_bytes;
+    
+    // CPU-specific fields
+    bool supports_avx2;
+    bool supports_fma;
+    uint32_t cpu_logical_cores;
+    uint32_t cpu_physical_cores;
 };
 
 struct MemoryInfo {
@@ -69,6 +85,9 @@ inline std::ostream& operator<<(std::ostream& os, ErrorCode code) {
         case ErrorCode::MEMORY_COPY_FAILED: return os << "MEMORY_COPY_FAILED";
         case ErrorCode::DEVICE_SELECTION_FAILED: return os << "DEVICE_SELECTION_FAILED";
         case ErrorCode::COMPUTATION_TIMEOUT: return os << "COMPUTATION_TIMEOUT";
+        case ErrorCode::BACKEND_NOT_AVAILABLE: return os << "BACKEND_NOT_AVAILABLE";
+        case ErrorCode::AVX2_NOT_SUPPORTED: return os << "AVX2_NOT_SUPPORTED";
+        case ErrorCode::CPU_THREAD_ERROR: return os << "CPU_THREAD_ERROR";
         case ErrorCode::UNKNOWN_ERROR: return os << "UNKNOWN_ERROR";
         default: return os << "UNKNOWN_ERROR_CODE";
     }

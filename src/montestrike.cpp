@@ -1,4 +1,5 @@
 #include "montestrike/montestrike.hpp"
+#include "montestrike/cpu_analyzer.hpp"
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <chrono>
@@ -19,6 +20,23 @@ extern "C" {
     uint64_t estimate_memory_requirements(uint32_t num_paths);
 }
 
+// Forward declarations for CPU implementations
+extern "C" {
+    montestrike::MonteCarloPoT::Results calculate_pot_cpu_impl(
+        float current_price, float strike_price, float time_to_expiration,
+        float drift, float volatility, uint32_t steps_per_day, uint32_t num_paths,
+        bool use_antithetic_variates, uint32_t random_seed, uint32_t cpu_threads,
+        montestrike::ProgressCallback progress_callback, void* callback_user_data,
+        uint32_t progress_report_interval_ms);
+        
+    montestrike::MonteCarloPoT::Results calculate_pot_avx2_impl(
+        float current_price, float strike_price, float time_to_expiration,
+        float drift, float volatility, uint32_t steps_per_day, uint32_t num_paths,
+        bool use_antithetic_variates, uint32_t random_seed, uint32_t cpu_threads,
+        montestrike::ProgressCallback progress_callback, void* callback_user_data,
+        uint32_t progress_report_interval_ms);
+}
+
 namespace montestrike {
 
 // Parameter defaults
@@ -32,6 +50,9 @@ MonteCarloPoT::Parameters::Parameters()
     , num_paths(100000)
     , use_antithetic_variates(false)
     , random_seed(0)
+    , backend(ComputeBackend::CUDA)
+    , cpu_threads(0)
+    , strict_backend_mode(false)
     , progress_callback(nullptr)
     , callback_user_data(nullptr)
     , progress_report_interval_ms(100)
@@ -98,16 +119,7 @@ public:
     Results calculate_pot(const Parameters& params) {
         Results results;
         
-        if (!initialized_) {
-            ErrorCode init_result = initialize(params.device_id);
-            if (init_result != ErrorCode::SUCCESS) {
-                results.error_code = init_result;
-                results.error_message = error_code_to_string(init_result);
-                return results;
-            }
-        }
-        
-        // Validate parameters
+        // Validate parameters first
         auto validation = validate_monte_carlo_parameters(
             params.current_price, params.strike_price, params.time_to_expiration,
             params.drift, params.volatility, params.steps_per_day, params.num_paths
@@ -117,6 +129,64 @@ public:
             results.error_code = validation.error_code;
             results.error_message = validation.error_message;
             return results;
+        }
+        
+        // Route to backend with optional fallback chain
+        ComputeBackend backend_to_use = params.backend;
+        
+        // Try requested backend first
+        results = try_backend(params, backend_to_use);
+        
+        // If strict mode, don't try fallbacks
+        if (params.strict_backend_mode) {
+            return results;
+        }
+        
+        // If requested backend failed, try fallback chain (only for CUDA)
+        if (!results.computation_successful && params.backend == ComputeBackend::CUDA) {
+            // CUDA failed, try AVX2
+            CpuAnalyzer& cpu_analyzer = get_cpu_analyzer();
+            if (cpu_analyzer.supports_avx2()) {
+                backend_to_use = ComputeBackend::AVX2;
+                results = try_backend(params, backend_to_use);
+            }
+            
+            // If AVX2 also failed or unavailable, try CPU
+            if (!results.computation_successful) {
+                backend_to_use = ComputeBackend::CPU;
+                results = try_backend(params, backend_to_use);
+            }
+        }
+        
+        return results;
+    }
+    
+    Results try_backend(const Parameters& params, ComputeBackend backend) {
+        switch (backend) {
+            case ComputeBackend::CUDA:
+                return calculate_pot_cuda(params);
+            case ComputeBackend::AVX2:
+                return calculate_pot_avx2(params);
+            case ComputeBackend::CPU:
+                return calculate_pot_cpu(params);
+            default:
+                Results results;
+                results.error_code = ErrorCode::BACKEND_NOT_AVAILABLE;
+                results.error_message = "Unsupported backend requested";
+                return results;
+        }
+    }
+    
+    Results calculate_pot_cuda(const Parameters& params) {
+        Results results;
+        
+        if (!initialized_) {
+            ErrorCode init_result = initialize(params.device_id);
+            if (init_result != ErrorCode::SUCCESS) {
+                results.error_code = init_result;
+                results.error_message = error_code_to_string(init_result);
+                return results;
+            }
         }
         
         // Check device memory
@@ -132,6 +202,42 @@ public:
         } else {
             return calculate_pot_fast_path(params);
         }
+    }
+    
+    Results calculate_pot_cpu(const Parameters& params) {
+        return calculate_pot_cpu_impl(
+            params.current_price,
+            params.strike_price,
+            params.time_to_expiration,
+            params.drift,
+            params.volatility,
+            params.steps_per_day,
+            params.num_paths,
+            params.use_antithetic_variates,
+            params.random_seed,
+            params.cpu_threads,
+            params.progress_callback,
+            params.callback_user_data,
+            params.progress_report_interval_ms
+        );
+    }
+    
+    Results calculate_pot_avx2(const Parameters& params) {
+        return calculate_pot_avx2_impl(
+            params.current_price,
+            params.strike_price,
+            params.time_to_expiration,
+            params.drift,
+            params.volatility,
+            params.steps_per_day,
+            params.num_paths,
+            params.use_antithetic_variates,
+            params.random_seed,
+            params.cpu_threads,
+            params.progress_callback,
+            params.callback_user_data,
+            params.progress_report_interval_ms
+        );
     }
     
     Results calculate_pot_fast_path(const Parameters& params) {

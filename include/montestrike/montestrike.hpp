@@ -20,6 +20,11 @@ public:
         bool use_antithetic_variates;   // Variance reduction technique
         uint32_t random_seed;           // For reproducible results (0 = system time)
         
+        // Backend selection
+        ComputeBackend backend;         // CUDA, AVX2, or CPU backend
+        uint32_t cpu_threads;           // CPU threads to use (0 = auto-detect cores)
+        bool strict_backend_mode;       // If true, fail if requested backend unavailable
+        
         // Optional progress reporting
         ProgressCallback progress_callback;
         void* callback_user_data;

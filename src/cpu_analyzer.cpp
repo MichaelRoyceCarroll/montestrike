@@ -54,8 +54,8 @@ void CpuAnalyzer::detect_cpu_features() {
     sse4_1_supported_ = (cpu_info[2] & (1 << 19)) != 0;
     fma_supported_ = (cpu_info[2] & (1 << 12)) != 0;
     
-    // Extended features
-    __cpuid(cpu_info, 7);
+    // Extended features (leaf 7, sub-leaf 0)
+    __cpuidex(cpu_info, 7, 0);
     avx2_supported_ = (cpu_info[1] & (1 << 5)) != 0;
     
     // Get CPU brand string
@@ -93,8 +93,8 @@ void CpuAnalyzer::detect_cpu_features() {
         cpu_stepping_ = eax & 0xF;
     }
     
-    // Extended features
-    if (__get_cpuid(7, &eax, &ebx, &ecx, &edx)) {
+    // Extended features (leaf 7, sub-leaf 0)
+    if (__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) {
         avx2_supported_ = (ebx & (1 << 5)) != 0;
     }
     

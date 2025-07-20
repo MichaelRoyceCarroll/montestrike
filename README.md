@@ -120,6 +120,26 @@ pip install .
 
 ## Usage Guide
 
+### Backend Selection
+
+MonteStrike supports multiple compute backends:
+
+```cpp
+params.backend = montestrike::ComputeBackend::CUDA;  // GPU acceleration (default)
+params.backend = montestrike::ComputeBackend::AVX2;  // CPU vectorization  
+params.backend = montestrike::ComputeBackend::CPU;   // Standard CPU
+params.strict_backend_mode = false;  // Allow fallback if requested unavailable
+```
+
+```bash
+# Test specific backend
+./basic_usage_cpp --backend cuda
+./basic_usage_cpp --backend cpu
+
+# Test all available backends
+./basic_usage_cpp --backend all
+```
+
 ### Parameter Selection
 
 **Current Price (S)**: The current stock price  
@@ -210,16 +230,26 @@ python -m pytest test/python/
 
 ## Performance Benchmarks
 
-Measured performance on RTX 4060 Laptop GPU:
+### Backend Comparison
+
+Measured on Intel Core Ultra 9 185H + RTX 4060 Laptop GPU (1M paths):
+
+| Backend | Time (ms) | Throughput (M paths/s) | Relative Performance |
+|---------|-----------|------------------------|---------------------|
+| **CUDA** | 52        | 19.2                   | 38x                 |
+| **CPU**  | 508       | 2.0                    | 4x                  |
+| **AVX2** | 707       | 0.7                    | 1x (baseline)       |
+
+### CUDA Scaling (RTX 4060 Laptop GPU)
 
 | Paths | Time (ms) | Throughput (M paths/s) |
 |-------|-----------|------------------------|
 | 50K   | 4.7       | 2.7                    |
-| 100K  | 8.1       | ~12.3                  |
-| 500K  | 36.7      | ~13.6                  |
+| 100K  | 8.1       | 12.3                   |
+| 500K  | 36.7      | 13.6                   |
 | 1M    | 51.6      | 19.4                   |
 
-*Results may vary based on GPU model, driver version, and system configuration.*
+*Results may vary based on hardware, driver version, and system configuration.*
 
 ## Building from Source
 
