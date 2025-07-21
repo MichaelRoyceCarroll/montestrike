@@ -17,7 +17,7 @@ struct VersionInfo {
 };
 
 constexpr uint32_t VERSION_MAJOR = 0;
-constexpr uint32_t VERSION_MINOR = 1;
+constexpr uint32_t VERSION_MINOR = 2;
 constexpr uint32_t VERSION_PATCH = 0;
 const std::string VERSION_BUILD_TYPE = "Release";
 

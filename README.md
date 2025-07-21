@@ -16,14 +16,16 @@ MonteStrike is a high-performance CUDA-accelerated library for calculating the p
 
 ## Features
 
-- 🚀 **CUDA-Accelerated**: Leverages NVIDIA GPUs for high-performance Monte Carlo simulation
+- 🚀 **Multi-Backend Support**: CUDA GPU acceleration + CPU fallback for universal compatibility
+- 🖥️ **CPU Threading**: Multi-threaded CPU implementation when GPU unavailable
 - 📊 **Geometric Brownian Motion**: Industry-standard model for stock price simulation  
 - 🎯 **Probability of Touch**: Calculate the likelihood of an option reaching its strike price
 - 🔧 **Dual Interface**: Both C++ and Python APIs available
-- ⚡ **High Performance**: Process millions of paths in milliseconds
+- ⚡ **High Performance**: Process millions of paths in milliseconds (GPU) or seconds (CPU)
 - 🎛️ **Configurable**: Adjustable parameters for precision vs speed trade-offs
 - 🧪 **Variance Reduction**: Optional antithetic variates for improved accuracy
 - 📈 **Real-world Ready**: Includes test data generation from live market data
+- 🔄 **Smart Fallback**: Automatically falls back to CPU when CUDA unavailable
 
 ## Quick Start
 
@@ -74,17 +76,20 @@ auto results = calculator.calculate_pot(params);
 ## Requirements
 
 ### Hardware
-- NVIDIA GPU with Compute Capability 6.0+ (GTX 10-series or newer)
-- 4GB+ GPU memory recommended for large simulations
+- **GPU (Recommended)**: NVIDIA GPU with Compute Capability 6.0+ (GTX 10-series or newer)
+- **CPU (Fallback)**: Multi-core x86-64 processor for CPU backend
+- 4GB+ GPU memory recommended for large GPU simulations
 
 ### Software
 - **Windows**: Windows 10/11, Visual Studio 2019+
 - **Linux**: Ubuntu 22.04+ LTS, GCC 9+
-- **CUDA Toolkit**: 11.0 or later
+- **CUDA Toolkit**: 11.0 or later (optional - for GPU acceleration)
 - **Python**: 3.8+ (for Python bindings)
 - **CMake**: 3.18+
 
-MonteStrike currently targets NVIDIA GPUs via CUDA. Other GPU vendors may be supported based on community demand.
+MonteStrike supports both GPU (CUDA) and CPU backends. CUDA provides accelerated performance but is not required - the library automatically falls back to multi-threaded CPU implementation when GPU unavailable.
+
+**Note**: AVX2 CPU optimizations are under investigation due to thread affinity limitations in WSL2/hypervisor environments.
 
 ## Installation
 
@@ -140,60 +145,42 @@ params.strict_backend_mode = false;  // Allow fallback if requested unavailable
 ./basic_usage_cpp --backend all
 ```
 
-### Parameter Selection
+### Key Parameters (Quick Reference)
 
-**Current Price (S)**: The current stock price  
-**Strike Price (K)**: The price level to test for touch  
-**Time to Expiration (T)**: Time remaining in years (e.g., 30 days = 30/365)  
-**Drift (μ)**: Expected annual return rate (e.g., 0.05 = 5%)  
-**Volatility (σ)**: Annual volatility (e.g., 0.20 = 20%)  
-**Steps per Day**: Time resolution (50-100 recommended)  
-**Number of Paths**: Simulation paths (1M+ for accurate results)
+**Current Price (S)**: Current market price of the underlying stock  
+**Strike Price (K)**: Target price level to test for probability of touch  
+**Time to Expiration (T)**: Days/weeks until option expires (e.g., 30 days = 30/365)  
+**Drift (μ)**: Expected annual return rate - market assumption (typically 3-8%)  
+**Volatility (σ)**: Annual price movement volatility (typically 15-50% for stocks)  
+**Number of Paths**: Simulation runs - more paths = higher accuracy (50K-4M range)  
+
+*For detailed parameter guidance, see [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md)*
 
 ### Performance Guidelines
 
-| Path Count | Accuracy | Speed | Memory | Use Case |
-|------------|----------|-------|---------|----------|
-| 50K        | Basic    | Fast  | Low     | Quick estimates |
-| 100K       | Good     | Fast  | Low     | Development/testing |
-| 500K       | Better   | Medium| Medium  | Production (fast) |
-| 1M         | High     | Medium| Medium  | Production (balanced) |
-| 2M+        | Highest  | Slow  | High    | Research/validation |
+| Path Count | Accuracy | GPU Time (RTX 4060) | CPU Time (Core Ultra 9) |
+|------------|----------|---------------------|-------------------------|
+| 50K        | ±2-3%    | 6ms                 | ~47ms                   |
+| 100K       | ±1.5%    | 10ms                | ~87ms                   |
+| 500K       | ±0.7%    | 43ms                | ~421ms                  |
+| 1M         | ±0.5%    | 84ms                | ~821ms                  |
+| 2M         | ±0.3%    | ~170ms              | ~1.6s                   |
+| 4M         | ±0.2%    | ~340ms              | ~3.3s                   |
 
-## API Reference
+## Getting Started
 
-### Core Classes
+### Quick Setup
 
-#### `MonteCarloPoT`
-Main calculator class for probability of touch estimation.
+```bash
+git clone https://github.com/MichaelRoyceCarroll/montestrike.git
+cd montestrike && mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release && make -j8
+```
 
-**Methods:**
-- `calculate_pot(parameters)` - Run Monte Carlo simulation
-- `validate_parameters(parameters)` - Validate input parameters
-- `initialize(device_id)` - Initialize GPU resources
-- `get_device_analyzer()` - Access device information
-
-#### `Parameters`
-Configuration for Monte Carlo simulation.
-
-**Properties:**
-- `current_price` (float) - Current stock price
-- `strike_price` (float) - Strike price to test
-- `time_to_expiration` (float) - Time to expiration in years
-- `drift` (float) - Expected annual return
-- `volatility` (float) - Annual volatility
-- `steps_per_day` (uint32_t) - Time resolution
-- `num_paths` (uint32_t) - Number of simulation paths
-
-#### `Results`
-Simulation results and performance metrics.
-
-**Properties:**
-- `probability_of_touch` (float) - Calculated probability (0-1)
-- `computation_successful` (bool) - Success status
-- `paths_processed` (uint64_t) - Number of paths simulated
-- `metrics.computation_time_ms` (double) - Total computation time
-- `metrics.throughput_paths_per_sec` (double) - Performance metric
+**Next Steps:**
+- 🚀 **Quick Start**: See [QUICK_START.md](QUICK_START.md) for 5-minute setup
+- 📚 **Detailed Usage**: See [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md) for complete guide
+- 🔧 **API Reference**: Full API documentation in [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md)
 
 ## Examples
 
@@ -236,9 +223,8 @@ Measured on Intel Core Ultra 9 185H + RTX 4060 Laptop GPU (1M paths):
 
 | Backend | Time (ms) | Throughput (M paths/s) | Relative Performance |
 |---------|-----------|------------------------|---------------------|
-| **CUDA** | 52        | 19.2                   | 38x                 |
-| **CPU**  | 508       | 2.0                    | 4x                  |
-| **AVX2** | 707       | 0.7                    | 1x (baseline)       |
+| **CUDA** | 50        | 20.1                   | 12.4x               |
+| **CPU**  | 617       | 1.6                    | 1x                  |
 
 ### CUDA Scaling (RTX 4060 Laptop GPU)
 

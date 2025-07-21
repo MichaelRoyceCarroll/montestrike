@@ -15,11 +15,16 @@ This guide provides detailed information on using the MonteStrike library effect
 
 ### Device Requirements
 
-Before using MonteStrike, ensure you have:
+MonteStrike supports multiple backends:
 
+**GPU Backend (Recommended)**:
 - NVIDIA GPU with Compute Capability 6.0 or higher
 - CUDA Toolkit 11.0+ installed
 - Sufficient GPU memory (4GB+ recommended)
+
+**CPU Backend (Fallback)**:
+- Multi-core x86-64 processor
+- No special requirements - works on any system
 
 ### Quick Device Check
 
@@ -33,8 +38,53 @@ if ms.check_cuda_available():
     for device in devices:
         print(f"  {device.name} - {device.global_memory_bytes // (1024**3)} GB")
 else:
-    print("No compatible CUDA devices found")
+    print("No compatible CUDA devices found - CPU backend will be used")
 ```
+
+## CPU Backend Usage
+
+MonteStrike includes a multi-threaded CPU backend that runs on any system without requiring CUDA.
+
+### Backend Selection
+
+```python
+import montestrike as ms
+
+params = ms.Parameters()
+# ... set other parameters ...
+
+# Force CPU backend
+params.backend = ms.ComputeBackend.CPU
+params.cpu_threads = 8  # Use 8 threads (auto-detect if 0)
+
+calc = ms.MonteCarloPoT()
+results = calc.calculate_pot(params)
+```
+
+### Performance Expectations
+
+| Backend | Typical Performance | Hardware Example |
+|---------|-------------------|------------------|
+| CUDA | ~20M paths/sec | RTX 4060 |
+| CPU | ~1.6M paths/sec | Intel Core Ultra 9 185H |
+
+### Thread Configuration
+
+```python
+# Auto-detect thread count (recommended)
+params.cpu_threads = 0
+
+# Manual thread count
+params.cpu_threads = 4  # Use 4 threads
+```
+
+### Backend Fallback Chain
+
+MonteStrike automatically falls back through backends:
+1. **CUDA** (if available and requested)
+2. **CPU** (always available)
+
+**Note**: AVX2 CPU optimizations are under investigation due to thread affinity limitations in WSL2/hypervisor environments.
 
 ## Parameter Selection
 

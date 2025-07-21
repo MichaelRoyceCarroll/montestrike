@@ -18,6 +18,8 @@ bool test_basic_monte_carlo();
 bool test_different_path_counts();
 bool test_antithetic_variates();
 bool test_edge_cases();
+bool test_cpu_backend();
+bool test_backend_comparison();
 
 } // namespace montestrike_test
 
@@ -39,21 +41,19 @@ int main() {
     auto devices = analyzer.enumerate_devices();
     
     if (devices.empty()) {
-        std::cerr << "❌ No CUDA devices found. Tests cannot run." << std::endl;
-        return 1;
+        std::cout << "⚠️  No CUDA devices found. CPU backend tests will still run." << std::endl;
+    } else {
+        auto compatible_devices = std::count_if(devices.begin(), devices.end(),
+            [](const montestrike::DeviceInfo& d) { return d.is_compatible; });
+        
+        if (compatible_devices == 0) {
+            std::cout << "⚠️  No compatible CUDA devices found. CPU backend tests will still run." << std::endl;
+        } else {
+            std::cout << "🎯 Found " << compatible_devices << " compatible CUDA device(s)" << std::endl;
+            auto best_device = analyzer.get_best_device();
+            std::cout << "🏆 Using device: " << best_device.name << " (CC " << best_device.compute_capability << ")" << std::endl;
+        }
     }
-    
-    auto compatible_devices = std::count_if(devices.begin(), devices.end(),
-        [](const montestrike::DeviceInfo& d) { return d.is_compatible; });
-    
-    if (compatible_devices == 0) {
-        std::cerr << "❌ No compatible CUDA devices found. Tests cannot run." << std::endl;
-        return 1;
-    }
-    
-    std::cout << "🎯 Found " << compatible_devices << " compatible CUDA device(s)" << std::endl;
-    auto best_device = analyzer.get_best_device();
-    std::cout << "🏆 Using device: " << best_device.name << " (CC " << best_device.compute_capability << ")" << std::endl;
     std::cout << std::endl;
     
     // Test suite
@@ -63,7 +63,9 @@ int main() {
         {"Basic Monte Carlo", test_basic_monte_carlo},
         {"Different Path Counts", test_different_path_counts},
         {"Antithetic Variates", test_antithetic_variates},
-        {"Edge Cases", test_edge_cases}
+        {"Edge Cases", test_edge_cases},
+        {"CPU Backend", test_cpu_backend},
+        {"Backend Comparison", test_backend_comparison}
     };
     
     int suite_passed = 0;
