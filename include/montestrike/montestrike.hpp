@@ -53,7 +53,7 @@ public:
     MonteCarloPoT();
     ~MonteCarloPoT();
     
-    Results calculate_pot(const Parameters& params);
+    Results estimate_pot(const Parameters& params);
     
     ValidationResult validate_parameters(const Parameters& params);
     

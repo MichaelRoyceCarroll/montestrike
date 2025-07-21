@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-Test Python bindings for MonteStrike v0.2.0 CPU and CUDA backends
+MonteStrike Installation Verification Script
+
+Verifies that MonteStrike was built correctly and both CPU/CUDA backends function properly.
+Run this after building to ensure your installation works before using the library.
 """
 
 import sys
 import os
-sys.path.insert(0, '/home/mcarr/montestrike/build')
+sys.path.insert(0, 'build')
 
 import montestrike as ms
 
@@ -34,7 +37,7 @@ def test_cpu_backend():
     params.backend = ms.ComputeBackend.CPU
     params.cpu_threads = 4
     
-    results = calc.calculate_pot(params)
+    results = calc.estimate_pot(params)
     
     assert results.computation_successful, f"CPU calculation failed: {results.error_message}"
     assert 0.0 <= results.probability_of_touch <= 1.0, f"Invalid probability: {results.probability_of_touch}"
@@ -67,7 +70,7 @@ def test_cuda_backend():
     params.num_paths = 100000  # Larger for GPU
     params.backend = ms.ComputeBackend.CUDA
     
-    results = calc.calculate_pot(params)
+    results = calc.estimate_pot(params)
     
     assert results.computation_successful, f"CUDA calculation failed: {results.error_message}"
     assert 0.0 <= results.probability_of_touch <= 1.0, f"Invalid probability: {results.probability_of_touch}"
@@ -93,7 +96,7 @@ def test_fallback_behavior():
     params.num_paths = 50000
     # Don't specify backend - let it choose automatically
     
-    results = calc.calculate_pot(params)
+    results = calc.estimate_pot(params)
     
     assert results.computation_successful, f"Fallback calculation failed: {results.error_message}"
     assert 0.0 <= results.probability_of_touch <= 1.0, f"Invalid probability: {results.probability_of_touch}"
@@ -103,8 +106,8 @@ def test_fallback_behavior():
     print("   ✅ Fallback test passed")
 
 def main():
-    print("🚀 MonteStrike v0.2.0 Python Backend Test")
-    print("=" * 45)
+    print("🚀 MonteStrike Installation Verification")
+    print("=" * 40)
     
     try:
         test_version()
@@ -117,7 +120,7 @@ def main():
         print("   1. mkdir build && cd build")
         print("   2. cmake .. -DCMAKE_BUILD_TYPE=Release")
         print("   3. make -j8")
-        print("   4. PYTHONPATH=$(pwd) python ../examples/test_python_backends.py")
+        print("   4. PYTHONPATH=build python scripts/verify_installation.py")
         
         return 0
         

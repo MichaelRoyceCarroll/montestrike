@@ -19,33 +19,25 @@ def main():
     print(f"⚡ CUDA Version: {version_info.cuda_version}")
     print()
     
-    # Check CUDA availability
-    if not ms.check_cuda_available():
-        print("❌ No compatible CUDA devices found!")
-        return 1
+    # Check for CUDA devices using DeviceAnalyzer
+    analyzer = ms.DeviceAnalyzer()
+    devices = analyzer.enumerate_devices()
     
-    # Display available devices
-    devices = ms.get_device_list()
-    compatible_devices = ms.get_compatible_devices()
-    
-    print("🎯 Available CUDA Devices:")
-    for device in devices:
-        status = "✅ Compatible" if device.is_compatible else "❌ Incompatible"
-        print(f"  Device {device.device_id}: {device.name} {status} (CC {device.compute_capability:.1f})")
-    
-    print(f"🏆 Found {len(compatible_devices)} compatible device(s)")
+    if devices:
+        print("🎯 Available CUDA Devices:")
+        for device in devices:
+            status = "✅ Compatible" if device.is_compatible else "❌ Incompatible"
+            print(f"  Device {device.device_id}: {device.name} {status} (CC {device.compute_capability:.1f})")
+        
+        compatible_count = sum(1 for d in devices if d.is_compatible)
+        print(f"🏆 Found {compatible_count} compatible device(s)")
+    else:
+        print("ℹ️  No CUDA devices found - will use CPU backend")
     print()
     
-    # Create calculator instance
+    # Create calculator instance (automatically initializes)
     calc = ms.MonteCarloPoT()
-    
-    # Initialize with auto-selected device
-    init_result = calc.initialize()
-    if init_result != ms.ErrorCode.SUCCESS:
-        print(f"❌ Failed to initialize calculator: {ms.error_code_to_string(init_result)}")
-        return 1
-    
-    print("✅ Calculator initialized successfully")
+    print("✅ Calculator created successfully")
     print()
     
     # Set up option parameters for an IWM call
@@ -71,31 +63,23 @@ def main():
     print(f"  Antithetic Variates: {'Yes' if params.use_antithetic_variates else 'No'}")
     print()
     
-    # Validate parameters
-    validation = calc.validate_parameters(params)
+    # Validate parameters using global function
+    validation = ms.validate_monte_carlo_parameters(
+        params.current_price, params.strike_price, params.time_to_expiration,
+        params.drift, params.volatility, params.steps_per_day, params.num_paths
+    )
     if not validation.is_valid:
         print(f"❌ Invalid parameters: {validation.error_message}")
         return 1
     
     print("✅ Parameters validated successfully")
-    
-    # Check memory requirements
-    memory_required = calc.estimate_memory_requirements(params.num_paths)
-    memory_info = calc.get_memory_info()
-    
-    print(f"💾 Estimated GPU memory required: {memory_required // (1024*1024)} MB")
-    print(f"💾 Available GPU memory: {memory_info.free_bytes // (1024*1024)} MB")
-    
-    if memory_info.free_bytes < memory_required:
-        print(f"⚠️  Warning: May not have sufficient GPU memory!")
-    
     print()
     
     # Run Monte Carlo simulation
     print("🎲 Running Monte Carlo simulation...")
     start_time = time.time()
     
-    results = calc.calculate_pot(params)
+    results = calc.estimate_pot(params)
     
     end_time = time.time()
     total_time = (end_time - start_time) * 1000  # Convert to ms
@@ -106,7 +90,7 @@ def main():
     print("=" * 10)
     
     if results.computation_successful:
-        print("✅ Computation completed successfully!")
+        print("✅ Estimation completed successfully!")
         print()
         
         print(f"🎯 Probability of Touch: {results.probability_of_touch:.4f} ({results.probability_of_touch * 100:.2f}%)")
@@ -120,12 +104,10 @@ def main():
         
         print("⚡ Performance Metrics:")
         print(f"  Total Time: {results.metrics.computation_time_ms:.2f} ms")
-        print(f"  Kernel Time: {results.metrics.kernel_time_ms:.2f} ms")
         print(f"  Throughput: {results.metrics.throughput_paths_per_sec:,.0f} paths/sec")
-        print(f"  Memory Used: {results.metrics.memory_used_bytes // (1024*1024)} MB")
         print()
         
-        print(f"🖥️  Device Used: {results.device_used.name} (Device {results.device_used.device_id})")
+        print(f"🖥️  Device Used: {results.device_used.name}")
         print()
         
         # Interpretation
@@ -181,33 +163,37 @@ def main():
     
     return 0
 
-def example_with_quick_calculation():
-    """Demonstrate the quick calculation helper function"""
+def example_with_cpu_backend():
+    """Demonstrate CPU backend usage"""
     print("\n" + "=" * 50)
-    print("🏃 Quick Calculation Example")
+    print("🖥️  CPU Backend Example")
     print("=" * 50)
     
-    # Use the convenience function for quick calculations
-    results = ms.quick_pot_calculation(
-        current_price=100.0,
-        strike_price=105.0,
-        days_to_expiration=14,
-        annual_volatility=0.30,
-        annual_drift=0.06,
-        num_paths=500000
-    )
+    # Create a second calculator to test CPU backend
+    calc = ms.MonteCarloPoT()
+    params = ms.Parameters()
+    params.current_price = 100.0
+    params.strike_price = 105.0
+    params.time_to_expiration = 14.0 / 365.0
+    params.drift = 0.06
+    params.volatility = 0.30
+    params.num_paths = 100000  # Smaller for CPU
+    params.backend = ms.ComputeBackend.CPU  # Force CPU backend
+    
+    results = calc.estimate_pot(params)
     
     if results.computation_successful:
-        print(f"🎯 Quick PoT calculation: {results.probability_of_touch:.4f}")
+        print(f"🎯 CPU PoT calculation: {results.probability_of_touch:.4f}")
         print(f"⚡ Computation time: {results.metrics.computation_time_ms:.2f} ms")
+        print(f"🖥️  Device: {results.device_used.name}")
     else:
-        print(f"❌ Quick calculation failed: {results.error_message}")
+        print(f"❌ CPU calculation failed: {results.error_message}")
 
 if __name__ == "__main__":
     exit_code = main()
     
     if exit_code == 0:
         # Run additional example if main succeeded
-        example_with_quick_calculation()
+        example_with_cpu_backend()
     
     exit(exit_code)

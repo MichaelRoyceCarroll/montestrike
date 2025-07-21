@@ -25,60 +25,91 @@ __global__ void monte_carlo_pot_kernel(
     float dt,                       // time step
     int steps_per_day,
     int total_steps,
-    int num_paths,
+    int effective_paths,            // Number of thread paths to process
     bool use_antithetic_variates,
     bool* touch_results,            // Output: did path touch strike?
     float* final_prices             // Optional: final prices for debugging
 ) {
     int path_id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (path_id >= num_paths) return;
-    
-    // Determine if this is an antithetic path
-    bool is_antithetic = use_antithetic_variates && (path_id >= num_paths / 2);
-    int base_path_id = is_antithetic ? path_id - num_paths / 2 : path_id;
-    
-    float price = current_price;
-    bool touched = false;
+    if (path_id >= effective_paths) return;
     
     // Pre-calculate constants for performance
     const float drift_term = (drift - 0.5f * volatility * volatility) * dt;
     const float vol_sqrt_dt = volatility * sqrtf(dt);
     
-    // Check if we start exactly at strike (immediate touch)
-    if (fabsf(current_price - strike_price) < 1e-6f) {
-        touched = true;
-    } else {
-        // Determine touch direction based on strike vs current price
-        bool check_upward = (strike_price > current_price);
+    if (use_antithetic_variates) {
+        // Process pair: original + antithetic (2 paths per thread)
+        bool touched1 = false, touched2 = false;
         
-        for (int step = 0; step < total_steps && !touched; step++) {
-            // Generate normal random number
-            float random_val = generate_normal_random(&random_states[base_path_id]);
-            
-            // Apply antithetic variates if needed
-            if (is_antithetic) {
-                random_val = -random_val;
-            }
-            
-            // Update price using Geometric Brownian Motion
-            price *= expf(drift_term + vol_sqrt_dt * random_val);
-            
-            // Check for touch based on direction
-            if (check_upward) {
-                if (price >= strike_price) {
-                    touched = true;
-                }
-            } else {
-                if (price <= strike_price) {
-                    touched = true;
+        // Process original path
+        float price1 = current_price;
+        if (fabsf(current_price - strike_price) < 1e-6f) {
+            touched1 = true;
+        } else {
+            bool check_upward = (strike_price > current_price);
+            for (int step = 0; step < total_steps && !touched1; step++) {
+                float random_val = generate_normal_random(&random_states[path_id]);
+                price1 *= expf(drift_term + vol_sqrt_dt * random_val);
+                
+                if (check_upward) {
+                    if (price1 >= strike_price) touched1 = true;
+                } else {
+                    if (price1 <= strike_price) touched1 = true;
                 }
             }
         }
-    }
-    
-    touch_results[path_id] = touched;
-    if (final_prices) {
-        final_prices[path_id] = price;
+        
+        // Process antithetic path (reset RNG to same state)
+        curandState temp_state = random_states[path_id];
+        float price2 = current_price;
+        if (fabsf(current_price - strike_price) < 1e-6f) {
+            touched2 = true;
+        } else {
+            bool check_upward = (strike_price > current_price);
+            for (int step = 0; step < total_steps && !touched2; step++) {
+                float random_val = -generate_normal_random(&temp_state); // Negative for antithetic
+                price2 *= expf(drift_term + vol_sqrt_dt * random_val);
+                
+                if (check_upward) {
+                    if (price2 >= strike_price) touched2 = true;
+                } else {
+                    if (price2 <= strike_price) touched2 = true;
+                }
+            }
+        }
+        
+        // Store results for both paths
+        touch_results[path_id * 2] = touched1;
+        touch_results[path_id * 2 + 1] = touched2;
+        if (final_prices) {
+            final_prices[path_id * 2] = price1;
+            final_prices[path_id * 2 + 1] = price2;
+        }
+    } else {
+        // Process single path
+        float price = current_price;
+        bool touched = false;
+        
+        if (fabsf(current_price - strike_price) < 1e-6f) {
+            touched = true;
+        } else {
+            bool check_upward = (strike_price > current_price);
+            for (int step = 0; step < total_steps && !touched; step++) {
+                float random_val = generate_normal_random(&random_states[path_id]);
+                price *= expf(drift_term + vol_sqrt_dt * random_val);
+                
+                if (check_upward) {
+                    if (price >= strike_price) touched = true;
+                } else {
+                    if (price <= strike_price) touched = true;
+                }
+            }
+        }
+        
+        touch_results[path_id] = touched;
+        if (final_prices) {
+            final_prices[path_id] = price;
+        }
     }
 }
 
@@ -141,7 +172,7 @@ cudaError_t launch_monte_carlo_kernel(
         dt,
         steps_per_day,
         total_steps,
-        num_paths,
+        effective_paths,  // Pass effective_paths, not num_paths!
         use_antithetic_variates,
         d_touch_results,
         d_final_prices
@@ -163,7 +194,7 @@ cudaError_t launch_reduce_kernel(
     
     reduce_touch_results<<<grid_size, block_size>>>(
         d_touch_results,
-        num_paths,
+        num_paths,  // This should be the total paths (original num_paths)
         d_touch_count
     );
     

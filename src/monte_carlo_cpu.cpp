@@ -110,8 +110,12 @@ MonteCarloPoT::Results CpuMonteCarloCalculator::calculate_pot_cpu(
         
         // Create worker threads
         std::vector<std::thread> workers;
-        uint32_t paths_per_thread = num_paths / num_threads;
-        uint32_t remaining_paths = num_paths % num_threads;
+        
+        // For antithetic variates, each worker processes half the requested paths
+        // (each iteration generates 2 paths: original + antithetic)
+        uint32_t effective_paths = use_antithetic_variates ? num_paths / 2 : num_paths;
+        uint32_t paths_per_thread = effective_paths / num_threads;
+        uint32_t remaining_paths = effective_paths % num_threads;
         
         uint32_t current_start = 0;
         for (uint32_t i = 0; i < num_threads; i++) {
@@ -222,24 +226,9 @@ void CpuMonteCarloCalculator::worker_thread(WorkerData data) {
                 break;
             }
             
-            bool touched = simulate_path(
-                data.current_price,
-                data.strike_price,
-                drift_term,
-                vol_sqrt_dt,
-                data.total_steps,
-                rng,
-                normal_dist
-            );
-            
-            if (touched) {
-                local_touched++;
-            }
-            
-            // Antithetic variate (if enabled and this isn't the last path for odd total)
-            if (data.use_antithetic_variates && (path + 1) < data.end_path) {
-                // Use negative random numbers for antithetic path
-                bool antithetic_touched = simulate_path(
+            if (data.use_antithetic_variates) {
+                // Process pair: original + antithetic (always 2 paths per iteration)
+                bool touched1 = simulate_path(
                     data.current_price,
                     data.strike_price,
                     drift_term,
@@ -247,16 +236,41 @@ void CpuMonteCarloCalculator::worker_thread(WorkerData data) {
                     data.total_steps,
                     rng,
                     normal_dist,
-                    true  // Use negative randoms
+                    false  // Original path
                 );
                 
-                if (antithetic_touched) {
+                bool touched2 = simulate_path(
+                    data.current_price,
+                    data.strike_price,
+                    drift_term,
+                    vol_sqrt_dt,
+                    data.total_steps,
+                    rng,
+                    normal_dist,
+                    true   // Antithetic path
+                );
+                
+                if (touched1) local_touched++;
+                if (touched2) local_touched++;
+                
+                data.paths_completed->fetch_add(2);
+            } else {
+                // Process single path
+                bool touched = simulate_path(
+                    data.current_price,
+                    data.strike_price,
+                    drift_term,
+                    vol_sqrt_dt,
+                    data.total_steps,
+                    rng,
+                    normal_dist,
+                    false
+                );
+                
+                if (touched) {
                     local_touched++;
                 }
                 
-                path++; // Skip next iteration since we processed two paths
-                data.paths_completed->fetch_add(2);
-            } else {
                 data.paths_completed->fetch_add(1);
             }
         }

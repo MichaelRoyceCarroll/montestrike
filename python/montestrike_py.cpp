@@ -171,7 +171,7 @@ PYBIND11_MODULE(montestrike, m) {
     py::class_<montestrike::MonteCarloPoT::Results>(m, "Results")
         .def(py::init<>())
         .def_readwrite("probability_of_touch", &montestrike::MonteCarloPoT::Results::probability_of_touch,
-                      "Calculated probability of touch (0.0 - 1.0)")
+                      "Estimated probability of touch (0.0 - 1.0)")
         .def_readwrite("paths_processed", &montestrike::MonteCarloPoT::Results::paths_processed,
                       "Number of paths actually processed")
         .def_readwrite("paths_touched", &montestrike::MonteCarloPoT::Results::paths_touched,
@@ -202,8 +202,8 @@ PYBIND11_MODULE(montestrike, m) {
     // MonteCarloPoT main class
     py::class_<montestrike::MonteCarloPoT>(m, "MonteCarloPoT")
         .def(py::init<>())
-        .def("calculate_pot", &montestrike::MonteCarloPoT::calculate_pot,
-             "Calculate probability of touch for given parameters",
+        .def("estimate_pot", &montestrike::MonteCarloPoT::estimate_pot,
+             "Estimate probability of touch for given parameters",
              py::arg("parameters"))
         .def("validate_parameters", &montestrike::MonteCarloPoT::validate_parameters,
              "Validate parameters before computation",

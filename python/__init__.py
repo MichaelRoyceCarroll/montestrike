@@ -27,8 +27,8 @@ Example usage:
     params.steps_per_day = 50
     params.num_paths = 100000
     
-    # Calculate probability of touch
-    results = calc.calculate_pot(params)
+    # Estimate probability of touch
+    results = calc.estimate_pot(params)
     
     if results.computation_successful:
         print(f"Probability of Touch: {results.probability_of_touch:.4f}")
@@ -123,7 +123,7 @@ def quick_pot_calculation(current_price, strike_price, days_to_expiration,
     params.steps_per_day = 50
     params.num_paths = num_paths
     
-    return calc.calculate_pot(params)
+    return calc.estimate_pot(params)
 
 # Display warning on import
 import warnings

@@ -44,10 +44,10 @@ void test_backend(montestrike::ComputeBackend backend, const std::string& backen
     params.strict_backend_mode = strict_mode;
     params.cpu_threads = cpu_threads;
 
-    auto results = calculator.calculate_pot(params);
+    auto results = calculator.estimate_pot(params);
 
     if (results.computation_successful) {
-        std::cout << "✅ Computation successful!" << std::endl;
+        std::cout << "✅ Estimation completed successfully!" << std::endl;
         std::cout << "🎯 Probability of Touch: " << std::fixed << std::setprecision(4) 
                   << results.probability_of_touch << " (" 
                   << std::setprecision(2) << (results.probability_of_touch * 100) << "%)" << std::endl;

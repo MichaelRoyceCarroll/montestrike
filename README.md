@@ -7,7 +7,7 @@
 
 **Monte Carlo US Option Probability of Touch Estimator**
 
-MonteStrike is a high-performance CUDA-accelerated library for calculating the probability that an option will touch its strike price before expiration using Geometric Brownian Motion Monte Carlo simulation. Designed for stock trading hobbyists and GPU computing enthusiasts.
+MonteStrike is a high-performance CUDA-accelerated library for estimating the probability that an option will touch its strike price before expiration using Geometric Brownian Motion Monte Carlo simulation. Designed for stock trading hobbyists and GPU computing enthusiasts.
 
 ## ⚠️ Financial Disclaimer
 
@@ -19,7 +19,7 @@ MonteStrike is a high-performance CUDA-accelerated library for calculating the p
 - 🚀 **Multi-Backend Support**: CUDA GPU acceleration + CPU fallback for universal compatibility
 - 🖥️ **CPU Threading**: Multi-threaded CPU implementation when GPU unavailable
 - 📊 **Geometric Brownian Motion**: Industry-standard model for stock price simulation  
-- 🎯 **Probability of Touch**: Calculate the likelihood of an option reaching its strike price
+- 🎯 **Probability of Touch**: Estimate the likelihood of an option reaching its strike price
 - 🔧 **Dual Interface**: Both C++ and Python APIs available
 - ⚡ **High Performance**: Process millions of paths in milliseconds (GPU) or seconds (CPU)
 - 🎛️ **Configurable**: Adjustable parameters for precision vs speed trade-offs
@@ -46,8 +46,8 @@ params.drift = 0.05  # 5% annual return
 params.volatility = 0.20  # 20% volatility
 params.num_paths = 1000000
 
-# Calculate probability of touch
-results = calc.calculate_pot(params)
+# Estimate probability of touch
+results = calc.estimate_pot(params)
 
 if results.computation_successful:
     print(f"Probability of Touch: {results.probability_of_touch:.4f}")
@@ -70,7 +70,7 @@ params.drift = 0.05f;
 params.volatility = 0.20f;
 params.num_paths = 1000000;
 
-auto results = calculator.calculate_pot(params);
+auto results = calculator.estimate_pot(params);
 ```
 
 ## Requirements

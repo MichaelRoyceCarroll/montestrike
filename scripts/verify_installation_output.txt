@@ -1,0 +1,38 @@
+🚀 MonteStrike Installation Verification
+========================================
+🔍 Testing Version Info...
+   Version: 0.2.0-Release
+   ✅ Version test passed
+
+🖥️  Testing CPU Backend...
+   PoT: 0.0781
+   Throughput: 575,639 paths/sec
+   ✅ CPU backend test passed
+
+🚀 Testing CUDA Backend...
+   PoT: 0.0743
+   Throughput: 8,332,713 paths/sec
+   ✅ CUDA backend test passed
+
+🔄 Testing Fallback Behavior...
+   PoT: 0.2811
+   Device: NVIDIA GeForce RTX 4060 Laptop GPU
+   ✅ Fallback test passed
+
+🎉 All Python backend tests passed!
+
+💡 Build and Test Instructions:
+   1. mkdir build && cd build
+   2. cmake .. -DCMAKE_BUILD_TYPE=Release
+   3. make -j8
+   4. PYTHONPATH=build python scripts/verify_installation.py
+
+--------------------------------------------------
+
+This script verifies that:
+• Python bindings compiled correctly
+• Both CPU and CUDA backends work
+• Library functions as expected
+• No runtime errors or crashes
+
+Run this after building to confirm your installation works!

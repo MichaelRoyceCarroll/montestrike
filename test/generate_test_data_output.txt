@@ -1,0 +1,53 @@
+MonteStrike Test Data Generator
+===============================
+
+⚠️  Note: This script requires 'yfinance' package to run.
+   Install with: pip install yfinance
+
+📋 Purpose:
+This script generates realistic option scenario data using YFinance API 
+for testing the MonteStrike library. It follows caching patterns from 
+iwm_scanner.py with structured JSON output.
+
+🚀 Usage Examples:
+
+# Generate default test data
+python test/generate_test_data.py
+
+# Generate IWM call option data (4-10 days to expiration)
+python test/generate_test_data.py --symbol IWM --min-days 4 --max-days 10
+
+# Generate U put option data (10-30 days to expiration)  
+python test/generate_test_data.py --symbol U --min-days 10 --max-days 30 --option-type put
+
+📊 What it generates:
+• Real market data for current stock prices
+• Historical volatility calculations
+• Option expiration dates and strikes
+• Test scenarios for MonteStrike validation
+• JSON cache files with date-based cleanup
+
+🎯 Test scenarios created:
+• Near-the-money options (90-110% of current price)
+• Various time horizons (1 day to 1 month)
+• Different volatility environments
+• Both call and put options
+• Parameters suitable for MonteStrike input
+
+📁 Output files:
+• data/cache/{SYMBOL}_data_{YYYY-MM-DD}.json
+• Cached for 7 days, then automatically cleaned up
+• Structured format for direct use in MonteStrike tests
+
+🔄 Cache management:
+• Reuses data within same trading day
+• Automatically removes files older than 7 days
+• Graceful handling of API rate limits
+
+--------------------------------------------------
+
+Example output would show:
+✅ Fetched IWM data: $220.50 current price
+📊 Calculated 30-day volatility: 25.3%
+🎯 Generated 12 test scenarios
+📁 Saved to: data/cache/IWM_data_2025-01-21.json

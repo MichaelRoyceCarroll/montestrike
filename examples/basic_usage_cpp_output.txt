@@ -1,52 +1,34 @@
 🚀 MonteStrike Basic Usage Example
 ==================================
-📦 MonteStrike Version: 0.1.0-Release
+📦 MonteStrike Version: 0.2.0-Release
 ⚡ CUDA Version: 12.9
 
-🎯 Available CUDA Devices:
-  Device 0: NVIDIA GeForce RTX 4060 Laptop GPU ✅ Compatible (CC 8.9)
-🏆 Using best device: NVIDIA GeForce RTX 4060 Laptop GPU
+💻 System Information:
+  CPU: Intel(R) Core(TM) Ultra 9 185H
+  Logical Cores: 22
+  AVX2 Support: Yes
+  CUDA Device: NVIDIA GeForce RTX 4060 Laptop GPU
 
-✅ Calculator initialized successfully
+📊 Testing All Available Backends:
+=================================
 
-📊 Option Parameters:
-  Current Price (S): $220.50
-  Strike Price (K): $225.00
-  Days to Expiration: 7.0
-  Annual Drift (μ): 8.0%
-  Annual Volatility (σ): 25.0%
-  Steps per Day: 50
-  Simulation Paths: 1000000
-  Antithetic Variates: Yes
+🧪 Testing CPU Backend
+=================================
+✅ Computation successful!
+🎯 Probability of Touch: 0.5477 (54.77%)
+⚡ Computation Time: 593.69 ms
+⚡ Throughput: 1684372 paths/sec
+🖥️  Device: Intel(R) Core(TM) Ultra 9 185H
 
-✅ Parameters validated successfully
-💾 Estimated GPU memory required: 50 MB
+🧪 Testing AVX2 Backend
+==================================
+❌ AVX2 backend failed: AVX2 backend not available (disabled at compile time)
 
-🎲 Running Monte Carlo simulation...
+🧪 Testing CUDA Backend
+==================================
+✅ Computation successful!
+🎯 Probability of Touch: 0.5476 (54.76%)
+⚡ Computation Time: 48.85 ms
+⚡ Throughput: 20471061 paths/sec
+🖥️  Device: NVIDIA GeForce RTX 4060 Laptop GPU
 
-📈 RESULTS:
-==========
-✅ Computation completed successfully!
-
-🎯 Probability of Touch: 0.2741 (27.41%)
-📊 Simulation Statistics:
-  Paths Processed: 1000000
-  Paths Touched: 274145
-  Touch Rate: 0.2741
-
-⚡ Performance Metrics:
-  Total Time: 51.60 ms
-  Kernel Time: 49.95 ms
-  Throughput: 19379233 paths/sec
-  Memory Used: 50 MB
-
-🖥️  Device Used: NVIDIA GeForce RTX 4060 Laptop GPU (Device 0)
-
-💡 INTERPRETATION:
-==================
-❄️  LOW probability of touching $225 before expiration
-📍 Strike is 2.0% above current price (OTM call)
-
-⚠️  DISCLAIMER: This simulation is for educational purposes only.
-   It does not constitute financial advice. Trading options involves
-   substantial risk and may not be suitable for all investors.

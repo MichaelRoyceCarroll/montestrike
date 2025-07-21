@@ -1,0 +1,48 @@
+🏁 MonteStrike Performance Benchmark
+====================================
+🖥️  Test Device: NVIDIA GeForce RTX 4060 Laptop GPU
+⚡ Compute Capability: 8.9
+🧠 Streaming Multiprocessors: 24
+💾 Global Memory: 7 GB
+💾 Available Memory: 7099 MB
+
+🎯 Running benchmark scenarios...
+
+| Paths    | Time (ms) | Throughput (M paths/s) | Memory (MB) | PoT    | Status |
+|----------|-----------|------------------------|-------------|--------|--------|
+|    50000 |       8.5 |                   6.13 |           2 | 0.3141 | ✅ OK   |
+|   100000 |      14.7 |                   6.88 |           5 | 0.3144 | ✅ OK   |
+|   500000 |      54.2 |                   9.52 |          25 | 0.3134 | ✅ OK   |
+|  1000000 |      97.0 |                  10.34 |          50 | 0.3128 | ✅ OK   |
+|  2000000 |     195.9 |                  10.24 |         101 | 0.3125 | ✅ OK   |
+|  4000000 |     390.1 |                  10.26 |         202 | 0.3125 | ✅ OK   |
+
+📊 Performance Analysis:
+========================
+🏆 Best Throughput: 10.34 M paths/sec (1000000 paths)
+⚡ Efficiency: 3,366 paths/sec per core
+💾 Memory Scaling: 101.00x for 80.0x paths
+
+💡 Recommendations:
+• Optimal performance at 1M+ paths
+• GPU resources fully utilized at ~10M paths/sec
+• Performance plateau indicates hardware saturation
+💾 Benchmark results saved to benchmark_results.csv
+
+✅ Benchmark completed successfully!
+
+⚠️  Note: Results may vary based on GPU temperature, driver version,
+   and system load. Run multiple times for consistent measurements.
+
+--------------------------------------------------
+
+Performance Interpretation:
+• Throughput scales well up to 500K-1M paths
+• Performance plateau at ~10M paths/sec indicates GPU saturation
+• RTX 4060 Laptop GPU reaches computational/memory bandwidth limits
+• Consistent results across multiple runs confirm stable performance
+
+Usage:
+./performance_benchmark                  # Run default benchmark
+./performance_benchmark --help           # Show options
+./performance_benchmark --paths 1000000 # Test specific path count

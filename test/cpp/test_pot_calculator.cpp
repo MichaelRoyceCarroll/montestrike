@@ -84,7 +84,7 @@ bool test_basic_monte_carlo() {
     params.random_seed = 12345;  // Fixed seed for reproducibility
     
     auto start_time = std::chrono::high_resolution_clock::now();
-    auto results = calculator.calculate_pot(params);
+    auto results = calculator.estimate_pot(params);
     auto end_time = std::chrono::high_resolution_clock::now();
     
     double execution_time = std::chrono::duration<double, std::milli>(end_time - start_time).count();
@@ -130,7 +130,7 @@ bool test_different_path_counts() {
         params.num_paths = paths;
         
         auto start_time = std::chrono::high_resolution_clock::now();
-        auto results = calculator.calculate_pot(params);
+        auto results = calculator.estimate_pot(params);
         auto end_time = std::chrono::high_resolution_clock::now();
         
         double execution_time = std::chrono::duration<double, std::milli>(end_time - start_time).count();
@@ -163,11 +163,11 @@ bool test_antithetic_variates() {
     
     // Test without antithetic variates
     params.use_antithetic_variates = false;
-    auto results_normal = calculator.calculate_pot(params);
+    auto results_normal = calculator.estimate_pot(params);
     
     // Test with antithetic variates
     params.use_antithetic_variates = true;
-    auto results_antithetic = calculator.calculate_pot(params);
+    auto results_antithetic = calculator.estimate_pot(params);
     
     MONTESTRIKE_ASSERT_TRUE(results_normal.computation_successful, "Normal computation should succeed");
     MONTESTRIKE_ASSERT_TRUE(results_antithetic.computation_successful, "Antithetic computation should succeed");
@@ -199,7 +199,7 @@ bool test_edge_cases() {
     params_at_money.steps_per_day = 50;
     params_at_money.num_paths = 50000;
     
-    auto results_at_money = calculator.calculate_pot(params_at_money);
+    auto results_at_money = calculator.estimate_pot(params_at_money);
     MONTESTRIKE_ASSERT_TRUE(results_at_money.computation_successful, "At-the-money calculation should succeed");
     MONTESTRIKE_ASSERT_GT(results_at_money.probability_of_touch, 0.8f, "At-the-money should have high PoT");
     
@@ -213,7 +213,7 @@ bool test_edge_cases() {
     params_short.steps_per_day = 24;  // Hourly steps
     params_short.num_paths = 50000;
     
-    auto results_short = calculator.calculate_pot(params_short);
+    auto results_short = calculator.estimate_pot(params_short);
     MONTESTRIKE_ASSERT_TRUE(results_short.computation_successful, "Short expiration calculation should succeed");
     MONTESTRIKE_ASSERT_LT(results_short.probability_of_touch, 0.5f, "Short expiration OTM should have lower PoT");
     
@@ -243,7 +243,7 @@ bool test_cpu_backend() {
     params.strict_backend_mode = true;
     
     auto start_time = std::chrono::high_resolution_clock::now();
-    auto results = calculator.calculate_pot(params);
+    auto results = calculator.estimate_pot(params);
     auto end_time = std::chrono::high_resolution_clock::now();
     
     double execution_time = std::chrono::duration<double, std::milli>(end_time - start_time).count();
@@ -297,7 +297,7 @@ bool test_backend_comparison() {
         cpu_params.num_paths = paths;
         
         auto cpu_start = std::chrono::high_resolution_clock::now();
-        auto cpu_results = calculator.calculate_pot(cpu_params);
+        auto cpu_results = calculator.estimate_pot(cpu_params);
         auto cpu_end = std::chrono::high_resolution_clock::now();
         
         double cpu_time = std::chrono::duration<double, std::milli>(cpu_end - cpu_start).count();
@@ -318,7 +318,7 @@ bool test_backend_comparison() {
             cuda_params.num_paths = paths;
             
             auto cuda_start = std::chrono::high_resolution_clock::now();
-            auto cuda_results = calculator.calculate_pot(cuda_params);
+            auto cuda_results = calculator.estimate_pot(cuda_params);
             auto cuda_end = std::chrono::high_resolution_clock::now();
             
             double cuda_time = std::chrono::duration<double, std::milli>(cuda_end - cuda_start).count();

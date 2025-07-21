@@ -30,8 +30,8 @@ make -j8
 ./basic_usage_cpp --backend cpu     # CPU (always works)
 ./test_montestrike_cpp              # Full test suite
 
-# Test Python bindings
-PYTHONPATH=$(pwd) python ../test_python_backends.py
+# Verify installation
+PYTHONPATH=build python scripts/verify_installation.py
 ```
 
 ## 📊 Expected Performance
@@ -41,13 +41,28 @@ PYTHONPATH=$(pwd) python ../test_python_backends.py
 | **CUDA** | RTX 4060 | ~20M paths/sec |
 | **CPU** | Core Ultra 9 185H | ~1.6M paths/sec |
 
-## 🐍 Python Example
+## 🐍 Python Setup
 
+### Core Library (Always Works)
 ```python
 import sys
 sys.path.insert(0, 'build')  # Add build directory to path
 import montestrike as ms
+```
 
+### Data Generation Scripts (Optional)
+Only needed for `test/generate_test_data.py` and market data tools:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Linux/Mac
+# .venv\Scripts\activate         # Windows
+pip install yfinance pandas numpy scipy
+```
+
+## 🐍 Python Example
+
+```python
 # Create calculator
 calc = ms.MonteCarloPoT()
 
@@ -61,8 +76,8 @@ params.volatility = 0.20       # 20% volatility
 params.num_paths = 1000000     # 1M paths
 params.backend = ms.ComputeBackend.CPU  # Force CPU (or CUDA)
 
-# Calculate probability of touch
-results = calc.calculate_pot(params)
+# Estimate probability of touch
+results = calc.estimate_pot(params)
 print(f"Probability of Touch: {results.probability_of_touch:.4f}")
 print(f"Throughput: {results.metrics.throughput_paths_per_sec:,.0f} paths/sec")
 ```
@@ -84,7 +99,7 @@ int main() {
     params.num_paths = 1000000;
     params.backend = montestrike::ComputeBackend::CPU;  // or CUDA
     
-    auto results = calc.calculate_pot(params);
+    auto results = calc.estimate_pot(params);
     
     if (results.computation_successful) {
         std::cout << "PoT: " << results.probability_of_touch << std::endl;
@@ -143,6 +158,18 @@ params.cpu_threads = 8;  // Use 8 threads for CPU backend
 ### Build errors
 - **Solution**: Check CMake/compiler versions meet requirements
 - **Alternative**: Use Docker/container with dependencies pre-installed
+
+## ✅ Verify Your Installation
+
+After building, verify everything works:
+
+```bash
+# Quick verification (recommended)
+PYTHONPATH=build python scripts/verify_installation.py
+
+# Full test suite
+./test_montestrike_cpp
+```
 
 ## 📚 Next Steps
 

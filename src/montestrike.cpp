@@ -118,7 +118,7 @@ public:
         }
     }
     
-    Results calculate_pot(const Parameters& params) {
+    Results estimate_pot(const Parameters& params) {
         Results results;
         
         // Validate parameters first
@@ -393,8 +393,8 @@ MonteCarloPoT::MonteCarloPoT() : pimpl(std::make_unique<Impl>()) {}
 
 MonteCarloPoT::~MonteCarloPoT() = default;
 
-MonteCarloPoT::Results MonteCarloPoT::calculate_pot(const Parameters& params) {
-    return pimpl->calculate_pot(params);
+MonteCarloPoT::Results MonteCarloPoT::estimate_pot(const Parameters& params) {
+    return pimpl->estimate_pot(params);
 }
 
 ValidationResult MonteCarloPoT::validate_parameters(const Parameters& params) {

@@ -16,19 +16,19 @@
 🧪 Running Basic Monte Carlo Calculation...
    PoT: 0.40568
    Paths touched: 20284/50000
-   Throughput: 3,119,740 paths/sec
-✅ Basic Monte Carlo Calculation PASSED (16.16 ms)
+   Throughput: 2.67032e+06 paths/sec
+✅ Basic Monte Carlo Calculation PASSED (18.9068 ms)
 
 🧪 Running Different Path Counts...
-   50000 paths: PoT=0.55184, time=4.55ms
-   100000 paths: PoT=0.5508, time=8.23ms
-   500000 paths: PoT=0.550156, time=36.40ms
+   50000 paths: PoT=0.55184, time=4.5352ms
+   100000 paths: PoT=0.5508, time=8.31318ms
+   500000 paths: PoT=0.550156, time=35.6651ms
 ✅ Different Path Counts PASSED
 
 🧪 Running Antithetic Variates...
    Normal: 0.60177
-   Antithetic: 0.60169
-   Difference: 7.99894e-05
+   Antithetic: 0.60382
+   Difference: 0.00205004
 ✅ Antithetic Variates PASSED
 
 🧪 Running Edge Cases...
@@ -39,27 +39,27 @@
 🧪 Running CPU Backend...
    PoT: 0.3989
    Paths touched: 39890/100000
-   Throughput: 335,172 paths/sec
+   Throughput: 318076 paths/sec
    Device: Intel(R) Core(TM) Ultra 9 185H
-✅ CPU Backend PASSED (298.36 ms)
+✅ CPU Backend PASSED (314.396 ms)
 
 🧪 Running Backend Comparison...
 
    Testing 50000 paths:
-     CPU: 43.86ms, 1,140,120 paths/sec
-     CUDA: 5.65ms, 10,250,000 paths/sec (7.8x speedup)
+     CPU: 45.2999ms, 1.1039e+06 paths/sec
+     CUDA: 5.87171ms, 8.8549e+06 paths/sec (7.7x speedup)
 
    Testing 100000 paths:
-     CPU: 83.7ms, 1,195,372 paths/sec
-     CUDA: 9.1ms, 11,163,050 paths/sec (9.2x speedup)
+     CPU: 88.6ms, 1129037.7 paths/sec
+     CUDA: 9.9ms, 10177794.9 paths/sec (8.9x speedup)
 
    Testing 500000 paths:
-     CPU: 416.7ms, 1,199,844 paths/sec
-     CUDA: 39.3ms, 12,856,152 paths/sec (10.6x speedup)
+     CPU: 427.3ms, 1170165.5 paths/sec
+     CUDA: 43.6ms, 11574899.3 paths/sec (9.8x speedup)
 
    Testing 1000000 paths:
-     CPU: 828.0ms, 1,207,743 paths/sec
-     CUDA: 77.9ms, 12,878,885 paths/sec (10.6x speedup)
+     CPU: 863.9ms, 1157525.3 paths/sec
+     CUDA: 86.0ms, 11648174.8 paths/sec (10.0x speedup)
 ✅ Backend Comparison PASSED
 
 
@@ -76,10 +76,3 @@ Test suites passed: 8
 Test suites failed: 0
 🎉 ALL TESTS PASSED! 🎉
 
---------------------------------------------------
-
-NEW IN v0.2.0:
-• CPU Backend testing
-• Backend comparison with performance metrics
-• Multi-threaded CPU implementation validation
-• Automatic fallback testing

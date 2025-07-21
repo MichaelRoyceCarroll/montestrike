@@ -51,7 +51,7 @@ public:
         
         for (int i = 0; i < iterations; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            auto results = calculator_.calculate_pot(params);
+            auto results = calculator_.estimate_pot(params);
             auto end = std::chrono::high_resolution_clock::now();
             
             if (!results.computation_successful) {
