@@ -6,12 +6,13 @@
 #include <vector>
 
 void print_usage(const char* program_name) {
-    std::cout << "Usage: " << program_name << " [--backend <cuda|avx2|cpu|all>]" << std::endl;
+    std::cout << "Usage: " << program_name << " [--backend <cuda|avx2|cpu|all>] [--threads <count>]" << std::endl;
     std::cout << "  --backend cuda   Use CUDA backend only" << std::endl;
     std::cout << "  --backend avx2   Use AVX2 backend only" << std::endl;  
     std::cout << "  --backend cpu    Use CPU backend only" << std::endl;
     std::cout << "  --backend all    Test all available backends" << std::endl;
-    std::cout << "  (default: cuda with fallback)" << std::endl;
+    std::cout << "  --threads <N>    Use N CPU threads (CPU/AVX2 backends only)" << std::endl;
+    std::cout << "  (default: cuda with fallback, auto-detect threads)" << std::endl;
 }
 
 montestrike::ComputeBackend parse_backend(const std::string& backend_str) {
@@ -21,7 +22,7 @@ montestrike::ComputeBackend parse_backend(const std::string& backend_str) {
     throw std::invalid_argument("Invalid backend: " + backend_str);
 }
 
-void test_backend(montestrike::ComputeBackend backend, const std::string& backend_name, bool strict_mode = false) {
+void test_backend(montestrike::ComputeBackend backend, const std::string& backend_name, bool strict_mode = false, uint32_t cpu_threads = 0) {
     std::cout << "\n🧪 Testing " << backend_name << " Backend" << std::endl;
     std::cout << std::string(30 + backend_name.length(), '=') << std::endl;
 
@@ -41,6 +42,7 @@ void test_backend(montestrike::ComputeBackend backend, const std::string& backen
     params.random_seed = 42;
     params.backend = backend;
     params.strict_backend_mode = strict_mode;
+    params.cpu_threads = cpu_threads;
 
     auto results = calculator.calculate_pot(params);
 
@@ -65,15 +67,20 @@ int main(int argc, char* argv[]) {
     
     // Parse command line arguments
     std::string backend_option = "default";
-    if (argc > 1) {
-        if (std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h") {
+    uint32_t cpu_threads = 0; // 0 = auto-detect
+    
+    for (int i = 1; i < argc; i++) {
+        if (std::string(argv[i]) == "--help" || std::string(argv[i]) == "-h") {
             print_usage(argv[0]);
             return 0;
-        }
-        if (argc >= 3 && std::string(argv[1]) == "--backend") {
-            backend_option = argv[2];
+        } else if (std::string(argv[i]) == "--backend" && i + 1 < argc) {
+            backend_option = argv[i + 1];
+            i++; // Skip the argument value
+        } else if (std::string(argv[i]) == "--threads" && i + 1 < argc) {
+            cpu_threads = std::stoul(argv[i + 1]);
+            i++; // Skip the argument value
         } else {
-            std::cerr << "❌ Invalid arguments." << std::endl;
+            std::cerr << "❌ Invalid argument: " << argv[i] << std::endl;
             print_usage(argv[0]);
             return 1;
         }
@@ -112,16 +119,16 @@ int main(int argc, char* argv[]) {
         std::cout << "📊 Testing All Available Backends:" << std::endl;
         std::cout << "=================================" << std::endl;
         
-        test_backend(montestrike::ComputeBackend::CPU, "CPU", true);
+        test_backend(montestrike::ComputeBackend::CPU, "CPU", true, cpu_threads);
         
         if (cpu_info.supports_avx2) {
-            test_backend(montestrike::ComputeBackend::AVX2, "AVX2", true);
+            test_backend(montestrike::ComputeBackend::AVX2, "AVX2", true, cpu_threads);
         } else {
             std::cout << "\n⚠️  Skipping AVX2 - not supported on this CPU" << std::endl;
         }
         
         if (cuda_available) {
-            test_backend(montestrike::ComputeBackend::CUDA, "CUDA", true);
+            test_backend(montestrike::ComputeBackend::CUDA, "CUDA", true, cpu_threads);
         } else {
             std::cout << "\n⚠️  Skipping CUDA - no compatible devices found" << std::endl;
         }
@@ -132,14 +139,14 @@ int main(int argc, char* argv[]) {
     // Handle specific backend or default
     if (backend_option == "default") {
         // Default behavior (CUDA with fallback)
-        test_backend(montestrike::ComputeBackend::CUDA, "CUDA (with fallback)", false);
+        test_backend(montestrike::ComputeBackend::CUDA, "CUDA (with fallback)", false, cpu_threads);
     } else {
         // Specific backend requested
         try {
             auto backend = parse_backend(backend_option);
             std::string backend_name = backend_option;
             backend_name[0] = std::toupper(backend_name[0]); // Capitalize first letter
-            test_backend(backend, backend_name, true);
+            test_backend(backend, backend_name, true, cpu_threads);
         } catch (const std::exception& e) {
             std::cerr << "❌ " << e.what() << std::endl;
             print_usage(argv[0]);

@@ -214,7 +214,7 @@ void CpuMonteCarloCalculator::worker_thread(WorkerData data) {
         float vol_sqrt_dt = data.volatility * std::sqrt(dt);
         
         uint64_t local_touched = 0;
-        uint32_t paths_in_batch = data.end_path - data.start_path;
+        // uint32_t paths_in_batch = data.end_path - data.start_path;  // TODO: For future progress reporting enhancement
         
         // Process paths
         for (uint32_t path = data.start_path; path < data.end_path; path++) {

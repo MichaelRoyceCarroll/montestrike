@@ -299,14 +299,35 @@ ErrorCode CpuAnalyzer::validate_backend(ComputeBackend backend) const {
 
 bool CpuAnalyzer::set_thread_affinity(uint32_t thread_id, uint32_t core_id) const {
 #ifdef _WIN32
-    HANDLE thread_handle = GetCurrentThread();
+    // On Windows, convert thread_id to actual thread handle
+    // For now, if thread_id is 0, use current thread
+    HANDLE thread_handle;
+    if (thread_id == 0) {
+        thread_handle = GetCurrentThread();
+    } else {
+        // Would need actual thread handle mapping - this is a limitation
+        // For robust implementation, would need thread handle registry
+        thread_handle = GetCurrentThread();
+    }
+    
     DWORD_PTR mask = 1ULL << core_id;
     return SetThreadAffinityMask(thread_handle, mask) != 0;
 #else
+    // On Linux, convert thread_id to pthread_t
+    // For now, if thread_id is 0, use current thread
+    pthread_t target_thread;
+    if (thread_id == 0) {
+        target_thread = pthread_self();
+    } else {
+        // Would need actual pthread_t mapping - this is a limitation
+        // For robust implementation, would need thread registry
+        target_thread = pthread_self();
+    }
+    
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(core_id, &cpuset);
-    return pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset) == 0;
+    return pthread_setaffinity_np(target_thread, sizeof(cpu_set_t), &cpuset) == 0;
 #endif
 }
 

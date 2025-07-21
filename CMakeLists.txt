@@ -19,15 +19,14 @@ option(BUILD_PYTHON_BINDINGS "Build Python bindings" ON)
 option(BUILD_TESTS "Build test suite" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
 option(BUILD_CPU_BACKEND "Build CPU backend support" ON)
-option(BUILD_AVX2_BACKEND "Build AVX2 backend support" ON)
+option(BUILD_AVX2_BACKEND "Build AVX2 backend support" OFF)  # Disabled due to WSL2 thread migration issues
 
 # Find required packages
 find_package(CUDAToolkit REQUIRED)
 
-# Check CUDA compute capability
-if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    set(CMAKE_CUDA_ARCHITECTURES 60 61 70 75 80 86 89)
-endif()
+# Set CUDA compute capabilities (6.0 and higher)
+# Force override any auto-detection to ensure compatibility from GTX 1000 series to RTX 4000+ series
+set(CMAKE_CUDA_ARCHITECTURES "60;61;70;75;80;86;89" CACHE STRING "CUDA architectures" FORCE)
 
 # Find Python and pybind11 for Python bindings
 if(BUILD_PYTHON_BINDINGS)

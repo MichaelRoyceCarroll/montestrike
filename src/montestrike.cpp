@@ -29,12 +29,14 @@ extern "C" {
         montestrike::ProgressCallback progress_callback, void* callback_user_data,
         uint32_t progress_report_interval_ms);
         
+#ifdef BUILD_AVX2_BACKEND
     montestrike::MonteCarloPoT::Results calculate_pot_avx2_impl(
         float current_price, float strike_price, float time_to_expiration,
         float drift, float volatility, uint32_t steps_per_day, uint32_t num_paths,
         bool use_antithetic_variates, uint32_t random_seed, uint32_t cpu_threads,
         montestrike::ProgressCallback progress_callback, void* callback_user_data,
         uint32_t progress_report_interval_ms);
+#endif
 }
 
 namespace montestrike {
@@ -223,6 +225,7 @@ public:
     }
     
     Results calculate_pot_avx2(const Parameters& params) {
+#ifdef BUILD_AVX2_BACKEND
         return calculate_pot_avx2_impl(
             params.current_price,
             params.strike_price,
@@ -238,6 +241,13 @@ public:
             params.callback_user_data,
             params.progress_report_interval_ms
         );
+#else
+        (void)params; // params only used when AVX2 is enabled - void cast for warning suppression
+        Results results;
+        results.error_code = ErrorCode::BACKEND_NOT_AVAILABLE;
+        results.error_message = "AVX2 backend not available (disabled at compile time)";
+        return results;
+#endif
     }
     
     Results calculate_pot_fast_path(const Parameters& params) {
