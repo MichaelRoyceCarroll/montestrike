@@ -18,7 +18,7 @@ namespace montestrike {
 
 class Avx2MonteCarloCalculator {
 public:
-    static MonteCarloPoT::Results calculate_pot_avx2(
+    static MonteCarloPoT::Results estimate_pot_avx2(
         float current_price,
         float strike_price,
         float time_to_expiration,
@@ -92,7 +92,7 @@ private:
     );
 };
 
-MonteCarloPoT::Results Avx2MonteCarloCalculator::calculate_pot_avx2(
+MonteCarloPoT::Results Avx2MonteCarloCalculator::estimate_pot_avx2(
     float current_price,
     float strike_price,
     float time_to_expiration,
@@ -557,7 +557,7 @@ uint32_t Avx2MonteCarloCalculator::simulate_paths_scalar_fallback(
 
 // External interface for AVX2 Monte Carlo
 extern "C" {
-    MonteCarloPoT::Results calculate_pot_avx2_impl(
+    MonteCarloPoT::Results estimate_pot_avx2_impl(
         float current_price,
         float strike_price,
         float time_to_expiration,
@@ -572,7 +572,7 @@ extern "C" {
         void* callback_user_data,
         uint32_t progress_report_interval_ms) {
         
-        return Avx2MonteCarloCalculator::calculate_pot_avx2(
+        return Avx2MonteCarloCalculator::estimate_pot_avx2(
             current_price, strike_price, time_to_expiration,
             drift, volatility, steps_per_day, num_paths,
             use_antithetic_variates, random_seed, cpu_threads,

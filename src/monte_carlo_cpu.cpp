@@ -14,7 +14,7 @@ namespace montestrike {
 
 class CpuMonteCarloCalculator {
 public:
-    static MonteCarloPoT::Results calculate_pot_cpu(
+    static MonteCarloPoT::Results estimate_pot_cpu(
         float current_price,
         float strike_price,
         float time_to_expiration,
@@ -61,7 +61,7 @@ private:
     );
 };
 
-MonteCarloPoT::Results CpuMonteCarloCalculator::calculate_pot_cpu(
+MonteCarloPoT::Results CpuMonteCarloCalculator::estimate_pot_cpu(
     float current_price,
     float strike_price,
     float time_to_expiration,
@@ -328,7 +328,7 @@ bool CpuMonteCarloCalculator::simulate_path(
 
 // External interface for CPU Monte Carlo
 extern "C" {
-    MonteCarloPoT::Results calculate_pot_cpu_impl(
+    MonteCarloPoT::Results estimate_pot_cpu_impl(
         float current_price,
         float strike_price,
         float time_to_expiration,
@@ -343,7 +343,7 @@ extern "C" {
         void* callback_user_data,
         uint32_t progress_report_interval_ms) {
         
-        return CpuMonteCarloCalculator::calculate_pot_cpu(
+        return CpuMonteCarloCalculator::estimate_pot_cpu(
             current_price, strike_price, time_to_expiration,
             drift, volatility, steps_per_day, num_paths,
             use_antithetic_variates, random_seed, cpu_threads,

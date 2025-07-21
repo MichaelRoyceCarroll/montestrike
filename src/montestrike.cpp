@@ -22,7 +22,7 @@ extern "C" {
 
 // Forward declarations for CPU implementations
 extern "C" {
-    montestrike::MonteCarloPoT::Results calculate_pot_cpu_impl(
+    montestrike::MonteCarloPoT::Results estimate_pot_cpu_impl(
         float current_price, float strike_price, float time_to_expiration,
         float drift, float volatility, uint32_t steps_per_day, uint32_t num_paths,
         bool use_antithetic_variates, uint32_t random_seed, uint32_t cpu_threads,
@@ -30,7 +30,7 @@ extern "C" {
         uint32_t progress_report_interval_ms);
         
 #ifdef BUILD_AVX2_BACKEND
-    montestrike::MonteCarloPoT::Results calculate_pot_avx2_impl(
+    montestrike::MonteCarloPoT::Results estimate_pot_avx2_impl(
         float current_price, float strike_price, float time_to_expiration,
         float drift, float volatility, uint32_t steps_per_day, uint32_t num_paths,
         bool use_antithetic_variates, uint32_t random_seed, uint32_t cpu_threads,
@@ -166,11 +166,11 @@ public:
     Results try_backend(const Parameters& params, ComputeBackend backend) {
         switch (backend) {
             case ComputeBackend::CUDA:
-                return calculate_pot_cuda(params);
+                return estimate_pot_cuda(params);
             case ComputeBackend::AVX2:
-                return calculate_pot_avx2(params);
+                return estimate_pot_avx2(params);
             case ComputeBackend::CPU:
-                return calculate_pot_cpu(params);
+                return estimate_pot_cpu(params);
             default:
                 Results results;
                 results.error_code = ErrorCode::BACKEND_NOT_AVAILABLE;
@@ -179,7 +179,7 @@ public:
         }
     }
     
-    Results calculate_pot_cuda(const Parameters& params) {
+    Results estimate_pot_cuda(const Parameters& params) {
         Results results;
         
         if (!initialized_) {
@@ -200,14 +200,14 @@ public:
         
         // Route to appropriate implementation based on progress callback
         if (params.progress_callback != nullptr) {
-            return calculate_pot_with_progress(params);
+            return estimate_pot_with_progress(params);
         } else {
-            return calculate_pot_fast_path(params);
+            return estimate_pot_fast_path(params);
         }
     }
     
-    Results calculate_pot_cpu(const Parameters& params) {
-        return calculate_pot_cpu_impl(
+    Results estimate_pot_cpu(const Parameters& params) {
+        return estimate_pot_cpu_impl(
             params.current_price,
             params.strike_price,
             params.time_to_expiration,
@@ -224,9 +224,9 @@ public:
         );
     }
     
-    Results calculate_pot_avx2(const Parameters& params) {
+    Results estimate_pot_avx2(const Parameters& params) {
 #ifdef BUILD_AVX2_BACKEND
-        return calculate_pot_avx2_impl(
+        return estimate_pot_avx2_impl(
             params.current_price,
             params.strike_price,
             params.time_to_expiration,
@@ -250,7 +250,7 @@ public:
 #endif
     }
     
-    Results calculate_pot_fast_path(const Parameters& params) {
+    Results estimate_pot_fast_path(const Parameters& params) {
         Results results;
         auto start_time = std::chrono::high_resolution_clock::now();
         
@@ -371,9 +371,9 @@ public:
         return results;
     }
     
-    Results calculate_pot_with_progress(const Parameters& params) {
+    Results estimate_pot_with_progress(const Parameters& params) {
         // For now, just call fast path - progress reporting can be added later
-        return calculate_pot_fast_path(params);
+        return estimate_pot_fast_path(params);
     }
     
     ValidationResult validate_parameters(const Parameters& params) {
